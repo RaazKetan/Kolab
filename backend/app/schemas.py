@@ -1,6 +1,12 @@
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
+
+class UserProfileUpdate(BaseModel):
+    org_type: Literal["college", "company"]
+    org_name: str
+    github_profile_url: str
+    github_selected_repos: List[str] 
 
 class UserCreate(BaseModel):
     username: str
@@ -25,9 +31,15 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str]
     is_active: bool
     created_at: datetime
-
+    org_type: Optional[str] = None
+    org_name: Optional[str] = None
+    github_profile_url: Optional[str] = None
+    github_selected_repos: Optional[List[dict]] = None
+    activity_score: Optional[int] = None
+    top_languages: Optional[List[str]] = None
+    top_frameworks: Optional[List[str]] = None
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ProjectCreate(BaseModel):
     title: str
@@ -57,9 +69,28 @@ class ProjectResponse(BaseModel):
     owner_id: int
     is_active: bool
     created_at: datetime
-
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class OwnerMatchItem(BaseModel):
+    # Project plus the user who liked it
+    id: int
+    title: str
+    summary: str
+    repo_url: Optional[str]
+    languages: List[str]
+    frameworks: List[str]
+    project_type: str
+    domains: List[str]
+    skills: List[str]
+    complexity: str
+    roles: List[str]
+    embedding_summary: Optional[str]
+    owner_id: int
+    is_active: bool
+    created_at: datetime
+    liked_by_user_id: int
+    approved_by_owner: bool | None = False
 
 class SwipeCreate(BaseModel):
     project_id: int
@@ -70,10 +101,11 @@ class SwipeResponse(BaseModel):
     user_id: int
     project_id: int
     is_like: bool
+    approved_by_owner: bool | None = False
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -81,3 +113,43 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: Optional[int] = None
+
+class CreateProjectFromRepo(BaseModel):
+    repo_url: str
+
+class ProjectAnalyzeResponse(BaseModel):
+    title: str
+    summary: str
+    repo_url: Optional[str]
+    languages: List[str]
+    frameworks: List[str]
+    project_type: str
+    domains: List[str]
+    skills: List[str]
+    complexity: str
+    roles: List[str]
+
+class ApproveLike(BaseModel):
+    project_id: int
+    liker_user_id: int
+
+class DiscoverFilters(BaseModel):
+    skills: Optional[List[str]] = None
+    domains: Optional[List[str]] = None
+    complexity: Optional[List[str]] = None
+    languages: Optional[List[str]] = None
+
+class ChatMessageCreate(BaseModel):
+    project_id: int
+    to_user_id: int
+    content: str
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    project_id: int
+    from_user_id: int
+    to_user_id: int
+    content: str
+    created_at: datetime
+    class Config:
+        from_attributes = True

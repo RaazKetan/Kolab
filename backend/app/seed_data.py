@@ -23,6 +23,15 @@ def seed_database():
             "avatar_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
         },
         {
+            "username": "rita_research",
+            "name": "Rita Singh",
+            "email": "rita@example.com",
+            "password": "password123",
+            "skills": ["TypeScript", "React", "Node.js", "MongoDB"],
+            "bio": "Frontend-focused full-stack engineer in EdTech.",
+            "avatar_url": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
+        },
+        {
             "username": "sarah_ui",
             "name": "Sarah Chen",
             "email": "sarah@example.com",
@@ -70,7 +79,14 @@ def seed_database():
             password_hash=hashed_password,
             skills=user_data["skills"],
             bio=user_data["bio"],
-            avatar_url=user_data["avatar_url"]
+            avatar_url=user_data["avatar_url"],
+            org_type="college",
+            org_name="Example University",
+            github_profile_url=f"https://github.com/{user_data['username']}",
+            github_selected_repos=[{"url": f"https://github.com/{user_data['username']}/demo-repo"}],
+            activity_score=70,
+            top_languages=user_data["skills"][:2],
+            top_frameworks=["React"] if "React" in user_data["skills"] else []
         )
         db.add(user)
         users.append(user)
@@ -91,6 +107,19 @@ def seed_database():
             "complexity": "intermediate",
             "roles": ["Backend Developer", "Frontend Developer", "ML Engineer"],
             "owner_id": users[0].id
+        },
+        {
+            "title": "Campus Events Hub",
+            "summary": "A portal for discovering and organizing campus events with RSVP and notifications.",
+            "repo_url": "https://github.com/example/campus-events",
+            "languages": ["TypeScript", "JavaScript"],
+            "frameworks": ["React", "Node.js"],
+            "project_type": "Web Application",
+            "domains": ["Community", "Events"],
+            "skills": ["React", "TypeScript", "Node.js", "MongoDB"],
+            "complexity": "beginner",
+            "roles": ["Frontend Developer", "Backend Developer"],
+            "owner_id": users[1].id
         },
         {
             "title": "EcoTracker Mobile App",

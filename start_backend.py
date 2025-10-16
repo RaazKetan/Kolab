@@ -6,6 +6,8 @@ import os
 import sys
 import subprocess
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 # Add the backend directory to Python path
 backend_dir = Path(__file__).parent / "backend"
