@@ -79,8 +79,17 @@ def analyze_project_from_repo(data: schemas.CreateProjectFromRepo):
             complexity = ai.get("complexity_level") or "intermediate",
             roles = ai.get("estimated_collaboration_roles") or [],
         )
-    except HTTPException:
-        raise
     except Exception as e:
-        # Surface the actual error for debugging in the UI/console
-        raise HTTPException(status_code=502, detail=f"Analysis failed: {type(e).__name__}: {str(e)}")
+        # Fallback so UI can continue without blocking on Gemini
+        return schemas.ProjectAnalyzeResponse(
+            title = "Untitled",
+            summary = "unknown",
+            repo_url = data.repo_url,
+            languages = [],
+            frameworks = [],
+            project_type = "unknown",
+            domains = [],
+            skills = [],
+            complexity = "intermediate",
+            roles = []
+        )

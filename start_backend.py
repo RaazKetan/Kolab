@@ -15,8 +15,8 @@ sys.path.insert(0, str(backend_dir))
 
 # Set environment variables
 os.environ.setdefault("DATABASE_URL", "sqlite:///./collabfoundry.db")
-os.environ.setdefault("GEMINI_API_KEY", "demo-key")
-
+os.environ.setdefault("GEMINI_API_KEY", "AIzaSyC3lYBSecqwctQGpyKQWACDIwwNjox-qVM")
+print(os.environ.get("GEMINI_API_KEY"))
 def main():
     print("🚀 Starting CollabFoundry Backend...")
     

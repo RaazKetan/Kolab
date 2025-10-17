@@ -3,10 +3,13 @@ from typing import List, Optional, Literal
 from datetime import datetime
 
 class UserProfileUpdate(BaseModel):
-    org_type: Literal["college", "company"]
-    org_name: str
-    github_profile_url: str
-    github_selected_repos: List[str] 
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    skills: Optional[List[str]] = None
+    org_type: Optional[Literal["college", "company"]] = None
+    org_name: Optional[str] = None
+    github_profile_url: Optional[str] = None
+    github_selected_repos: Optional[List[str]] = None 
 
 class UserCreate(BaseModel):
     username: str

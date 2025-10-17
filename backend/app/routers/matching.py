@@ -12,11 +12,12 @@ def get_next_project(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
+    # First, try to get projects that haven't been swiped yet
     swiped_ids = db.query(models.Swipe.project_id).filter(
         models.Swipe.user_id == current_user.id
     ).subquery()
 
-    candidates = db.query(models.Project).filter(
+    new_candidates = db.query(models.Project).filter(
         and_(
             models.Project.owner_id != current_user.id,
             models.Project.is_active == True,
@@ -24,10 +25,44 @@ def get_next_project(
         )
     ).all()
 
-    if not candidates:
-        raise HTTPException(status_code=404, detail="No more projects to discover")
+    if new_candidates:
+        selected_project = random.choice(new_candidates)
+        # Add a flag to indicate this is a new project
+        selected_project.is_reshow = False
+        return selected_project
+    
+    # If no new projects, get projects that were passed (not liked) - exclude liked projects
+    liked_project_ids = db.query(models.Swipe.project_id).filter(
+        and_(
+            models.Swipe.user_id == current_user.id,
+            models.Swipe.is_like == True
+        )
+    ).subquery()
 
-    return random.choice(candidates)
+    passed_project_ids = db.query(models.Swipe.project_id).filter(
+        and_(
+            models.Swipe.user_id == current_user.id,
+            models.Swipe.is_like == False
+        )
+    ).subquery()
+
+    passed_candidates = db.query(models.Project).filter(
+        and_(
+            models.Project.owner_id != current_user.id,
+            models.Project.is_active == True,
+            models.Project.id.in_(passed_project_ids),
+            ~models.Project.id.in_(liked_project_ids)  # Exclude liked projects
+        )
+    ).all()
+
+    if passed_candidates:
+        selected_project = random.choice(passed_candidates)
+        # Add a flag to indicate this is being reshown
+        selected_project.is_reshow = True
+        return selected_project
+    
+    # If no projects at all (including passed ones)
+    raise HTTPException(status_code=404, detail="No more projects to discover")
 
 @router.post("/swipe", response_model=schemas.SwipeResponse)
 def swipe_project(
@@ -68,20 +103,42 @@ def get_matches(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Get project IDs that user has liked
-    liked_project_ids = db.query(models.Swipe.project_id).filter(
+    # Get project IDs that user has liked AND that have been approved
+    liked_and_approved_ids = db.query(models.Swipe.project_id).filter(
         and_(
             models.Swipe.user_id == current_user.id,
-            models.Swipe.is_like == True
+            models.Swipe.is_like == True,
+            models.Swipe.approved_by_owner == True
         )
     ).subquery()
     
-    # Get projects based on liked IDs
+    # Get projects based on liked and approved IDs
     liked_projects = db.query(models.Project).filter(
-        models.Project.id.in_(liked_project_ids)
+        models.Project.id.in_(liked_and_approved_ids)
     ).all()
     
     return liked_projects
+
+@router.get("/approved-matches", response_model=list[schemas.ProjectResponse])
+def get_approved_matches(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Get project IDs that user has liked AND that have been approved by the owner
+    approved_project_ids = db.query(models.Swipe.project_id).filter(
+        and_(
+            models.Swipe.user_id == current_user.id,
+            models.Swipe.is_like == True,
+            models.Swipe.approved_by_owner == True
+        )
+    ).subquery()
+    
+    # Get projects based on approved liked IDs
+    approved_projects = db.query(models.Project).filter(
+        models.Project.id.in_(approved_project_ids)
+    ).all()
+    
+    return approved_projects
 
 @router.get("/recommendations", response_model=list[schemas.ProjectResponse])
 def get_recommendations(
@@ -119,12 +176,14 @@ def get_likes_on_my_projects(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Only show likes that haven't been approved yet
     rows = db.query(models.Project, models.Swipe.user_id).join(
         models.Swipe, models.Project.id == models.Swipe.project_id
     ).filter(
         and_(
             models.Project.owner_id == current_user.id,
-            models.Swipe.is_like == True
+            models.Swipe.is_like == True,
+            models.Swipe.approved_by_owner == False  # Only unapproved likes
         )
     ).all()
 
@@ -171,6 +230,17 @@ def approve_like(
         raise HTTPException(status_code=404, detail="Like not found")
     swipe.approved_by_owner = True
     db.add(swipe)
+    
+    # Also create a reverse match for the project owner
+    # This allows the project owner to see the match in their matches list
+    reverse_swipe = models.Swipe(
+        user_id=current_user.id,  # Project owner
+        project_id=payload.project_id,  # Their own project
+        is_like=True,  # They "like" their own project to show it in matches
+        approved_by_owner=True  # Auto-approved since they own it
+    )
+    db.add(reverse_swipe)
+    
     db.commit()
     db.refresh(swipe)
     return swipe

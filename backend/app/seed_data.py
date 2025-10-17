@@ -14,58 +14,76 @@ def seed_database():
     # Create dummy users
     users_data = [
         {
-            "username": "alex_dev",
-            "name": "Alex Johnson",
-            "email": "alex@example.com",
-            "password": "password123",
-            "skills": ["Python", "FastAPI", "React", "PostgreSQL"],
-            "bio": "Full-stack developer passionate about AI and machine learning",
+            "username": "arjun_sharma",
+            "name": "Arjun Sharma",
+            "email": "arjun@example.com",
+            "password": "arjun123",
+            "skills": ["Python", "Django", "React", "PostgreSQL", "AWS"],
+            "bio": "Full-stack developer from Bangalore, passionate about building scalable web applications. I love working on fintech and e-commerce projects.",
             "avatar_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
         },
         {
-            "username": "rita_research",
-            "name": "Rita Singh",
-            "email": "rita@example.com",
-            "password": "password123",
-            "skills": ["TypeScript", "React", "Node.js", "MongoDB"],
-            "bio": "Frontend-focused full-stack engineer in EdTech.",
+            "username": "priya_patel",
+            "name": "Priya Patel",
+            "email": "priya@example.com",
+            "password": "priya123",
+            "skills": ["React", "TypeScript", "Node.js", "MongoDB", "Express"],
+            "bio": "Frontend developer from Mumbai, specializing in React and modern JavaScript. I enjoy creating beautiful user interfaces and have experience in EdTech startups.",
             "avatar_url": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
         },
         {
-            "username": "sarah_ui",
-            "name": "Sarah Chen",
-            "email": "sarah@example.com",
-            "password": "password123",
-            "skills": ["React", "TypeScript", "Figma", "CSS"],
-            "bio": "UI/UX designer and frontend developer creating beautiful user experiences",
-            "avatar_url": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-        },
-        {
-            "username": "mike_data",
-            "name": "Mike Rodriguez",
-            "email": "mike@example.com",
-            "password": "password123",
-            "skills": ["Python", "Machine Learning", "TensorFlow", "Pandas"],
-            "bio": "Data scientist and ML engineer working on AI solutions",
+            "username": "rajesh_kumar",
+            "name": "Rajesh Kumar",
+            "email": "rajesh@example.com",
+            "password": "rajesh123",
+            "skills": ["Java", "Spring Boot", "Microservices", "Docker", "Kubernetes"],
+            "bio": "Backend developer from Delhi with expertise in Java and microservices architecture. I work on enterprise applications and love solving complex technical challenges.",
             "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
         },
         {
-            "username": "emma_mobile",
-            "name": "Emma Wilson",
-            "email": "emma@example.com",
-            "password": "password123",
-            "skills": ["React Native", "Flutter", "iOS", "Android"],
-            "bio": "Mobile app developer building cross-platform applications",
+            "username": "anita_desai",
+            "name": "Anita Desai",
+            "email": "anita@example.com",
+            "password": "anita123",
+            "skills": ["Python", "Machine Learning", "TensorFlow", "Pandas", "Scikit-learn"],
+            "bio": "Data scientist from Pune, passionate about AI and machine learning. I specialize in computer vision and NLP, and love working on healthcare tech projects.",
             "avatar_url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
         },
         {
-            "username": "david_blockchain",
-            "name": "David Kim",
-            "email": "david@example.com",
-            "password": "password123",
-            "skills": ["Solidity", "Web3", "Ethereum", "Node.js"],
-            "bio": "Blockchain developer and DeFi enthusiast",
-            "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face"
+            "username": "vikram_singh",
+            "name": "Vikram Singh",
+            "email": "vikram@example.com",
+            "password": "vikram123",
+            "skills": ["React Native", "Flutter", "iOS", "Android", "Firebase"],
+            "bio": "Mobile app developer from Chennai, building cross-platform applications. I have experience in fintech and social media apps, and love creating smooth user experiences.",
+            "avatar_url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+        },
+        {
+            "username": "sneha_reddy",
+            "name": "Sneha Reddy",
+            "email": "sneha@example.com",
+            "password": "sneha123",
+            "skills": ["Solidity", "Web3", "React", "TypeScript", "Ethereum"],
+            "bio": "Blockchain developer from Hyderabad, passionate about DeFi and Web3. I build smart contracts and dApps, and love exploring the future of decentralized finance.",
+            "avatar_url": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
+        },
+        {
+            "username": "rohit_verma",
+            "name": "Rohit Verma",
+            "email": "rohit@example.com",
+            "password": "rohit123",
+            "skills": ["JavaScript", "Vue.js", "Nuxt.js", "CSS", "Figma"],
+            "bio": "Frontend developer from Kolkata, specializing in Vue.js and modern web technologies. I create pixel-perfect designs and love working on creative projects.",
+            "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+        },
+        {
+            "username": "kavya_joshi",
+            "name": "Kavya Joshi",
+            "email": "kavya@example.com",
+            "password": "kavya123",
+            "skills": ["Python", "Django", "FastAPI", "PostgreSQL", "Redis"],
+            "bio": "Backend developer from Ahmedabad, building robust APIs and microservices. I specialize in Python and have experience in e-commerce and fintech platforms.",
+            "avatar_url": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
         }
     ]
     
