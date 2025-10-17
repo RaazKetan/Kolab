@@ -3,7 +3,7 @@ from typing import Any, Dict
 from google import genai
 
 
-MODEL_NAME = "gemini-2.5-pro"
+MODEL_NAME = "gemini-2.5-flash"
 
 
 class GeminiClient:
