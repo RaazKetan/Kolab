@@ -49,6 +49,7 @@ export function App() {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [messageNotifications, setMessageNotifications] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwiping, setIsSwiping] = useState(false);
   const isLoadingRef = useRef(false);
   const isLoadingNotificationsRef = useRef(false);
 
@@ -431,31 +432,77 @@ export function App() {
   }, []); // No dependencies since it only uses token from localStorage
 
   const handleSwipe = async (isLike) => {
-    if (!currentProject || currentProject.id == null) return;
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_BASE}/matching/swipe`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        project_id: Number(currentProject.id),
-        is_like: Boolean(isLike),
-      }),
-    });
-    if (!res.ok) {
-      const errorData = await res.json();
-      if (errorData.detail === "Already swiped on this project") {
-        // If already swiped, just move to next project
-        console.log("Project already swiped, moving to next...");
-        await fetchNextProject();
-        return;
-      }
-      console.error("swipe error:", errorData);
+    if (!currentProject || currentProject.id == null) {
+      console.log("No current project to swipe on");
       return;
     }
-    await fetchNextProject();
+    
+    if (isSwiping) {
+      console.log("Already swiping, please wait...");
+      return;
+    }
+    
+    console.log(`Swiping ${isLike ? 'like' : 'pass'} on project ${currentProject.id}`);
+    setIsSwiping(true);
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No authentication token found");
+      alert("Please log in to swipe on projects");
+      setIsSwiping(false);
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_BASE}/matching/swipe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          project_id: Number(currentProject.id),
+          is_like: Boolean(isLike),
+        }),
+      });
+      
+      console.log(`Swipe response status: ${res.status}`);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.log("Swipe error response:", errorData);
+        
+        if (errorData.detail === "Already swiped on this project") {
+          // If already swiped, just move to next project
+          console.log("Project already swiped, moving to next...");
+          await fetchNextProject();
+          return;
+        }
+        console.error("swipe error:", errorData);
+        alert(`Swipe failed: ${errorData.detail || 'Unknown error'}`);
+        return;
+      }
+      
+      const swipeResult = await res.json();
+      console.log("Swipe successful:", swipeResult);
+      
+      // Show success message
+      if (isLike) {
+        console.log("✅ Project liked successfully!");
+      } else {
+        console.log("❌ Project passed successfully!");
+      }
+      
+      // Move to next project after successful swipe
+      console.log("Moving to next project after successful swipe...");
+      await fetchNextProject();
+      console.log("Next project fetched, current project:", currentProject);
+    } catch (error) {
+      console.error("Swipe request failed:", error);
+      alert("Failed to swipe. Please check your connection and try again.");
+    } finally {
+      setIsSwiping(false);
+    }
   };
 
   const handleLogout = () => {
@@ -674,6 +721,7 @@ export function App() {
               <ProjectCard 
                 project={currentProject}
                 ownerUser={ownerUser}
+                isSwiping={isSwiping}
                 onLike={() => handleSwipe(true)}
                 onPass={() => handleSwipe(false)}
               />
