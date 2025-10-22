@@ -145,6 +145,35 @@ from backend.app.seed_data import seed_database
 seed_database()
 ```
 
+## Deployment
+
+### Deploy to Google Cloud Run
+
+Quick deployment (5 minutes):
+
+```bash
+./deploy.sh
+```
+
+For detailed deployment instructions, see:
+- **Quick Start:** [QUICKSTART_DEPLOY.md](./QUICKSTART_DEPLOY.md)
+- **Full Guide:** [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+The deployment includes:
+- ✅ Backend API on Cloud Run
+- ✅ Frontend on Cloud Run with Nginx
+- ✅ Automated Docker builds
+- ✅ Environment configuration
+- ✅ HTTPS enabled by default
+
+### Deployment Files
+
+- `backend/Dockerfile` - Backend container configuration
+- `frontend/Dockerfile` - Frontend container configuration
+- `cloudbuild.yaml` - Cloud Build configuration
+- `deploy.sh` - Interactive deployment script
+- `deploy-cloudbuild.sh` - Cloud Build deployment script
+
 ## Contributing
 
 1. Fork the repository
@@ -156,4 +185,3 @@ seed_database()
 ## License
 
 MIT License - see LICENSE file for details
-# Kolab
