@@ -7,6 +7,64 @@ import random
 
 router = APIRouter(prefix="/matching", tags=["Matching"])
 
+def calculate_match_score(user: models.User, project: models.Project) -> tuple[float, str]:
+    """
+    Calculate match score between user and project based on skills, languages, and frameworks.
+    Returns (score, match_strength) where:
+    - score: 0.0 to 1.0
+    - match_strength: "strong" (>0.7), "likely" (0.4-0.7), "weak" (<0.4)
+    """
+    score = 0.0
+    weights = {
+        'skills': 0.4,
+        'languages': 0.3,
+        'frameworks': 0.2,
+        'complexity': 0.1
+    }
+    
+    # Skills match
+    user_skills = set(user.skills or [])
+    project_skills = set(project.skills or [])
+    if user_skills and project_skills:
+        skills_overlap = len(user_skills.intersection(project_skills))
+        skills_score = min(1.0, skills_overlap / max(len(project_skills), 1))
+        score += skills_score * weights['skills']
+    
+    # Languages match
+    user_languages = set(user.top_languages or [])
+    project_languages = set(project.languages or [])
+    if user_languages and project_languages:
+        lang_overlap = len(user_languages.intersection(project_languages))
+        lang_score = min(1.0, lang_overlap / max(len(project_languages), 1))
+        score += lang_score * weights['languages']
+    
+    # Frameworks match
+    user_frameworks = set(user.top_frameworks or [])
+    project_frameworks = set(project.frameworks or [])
+    if user_frameworks and project_frameworks:
+        framework_overlap = len(user_frameworks.intersection(project_frameworks))
+        framework_score = min(1.0, framework_overlap / max(len(project_frameworks), 1))
+        score += framework_score * weights['frameworks']
+    
+    # Complexity bonus (if user has many skills, they can handle complex projects)
+    user_skill_count = len(user.skills or [])
+    if project.complexity == "advanced" and user_skill_count >= 5:
+        score += weights['complexity']
+    elif project.complexity == "intermediate" and user_skill_count >= 3:
+        score += weights['complexity'] * 0.7
+    elif project.complexity == "beginner":
+        score += weights['complexity'] * 0.5
+    
+    # Determine match strength
+    if score >= 0.7:
+        match_strength = "strong"
+    elif score >= 0.4:
+        match_strength = "likely"
+    else:
+        match_strength = "weak"
+    
+    return score, match_strength
+
 @router.get("/discover", response_model=schemas.ProjectResponse)
 def get_next_project(
     current_user: models.User = Depends(auth.get_current_user),
@@ -26,9 +84,23 @@ def get_next_project(
     ).all()
 
     if new_candidates:
-        selected_project = random.choice(new_candidates)
-        # Add a flag to indicate this is a new project
+        # Calculate match scores for all candidates
+        scored_projects = []
+        for project in new_candidates:
+            score, match_strength = calculate_match_score(current_user, project)
+            scored_projects.append((project, score, match_strength))
+        
+        # Sort by score (highest first)
+        scored_projects.sort(key=lambda x: x[1], reverse=True)
+        
+        # Select the top project
+        selected_project, score, match_strength = scored_projects[0]
+        
+        # Add match metadata to the project
         selected_project.is_reshow = False
+        selected_project.match_score = score
+        selected_project.match_strength = match_strength
+        
         return selected_project
     
     # If no new projects, get projects that were passed (not liked) - exclude liked projects
@@ -56,9 +128,20 @@ def get_next_project(
     ).all()
 
     if passed_candidates:
-        selected_project = random.choice(passed_candidates)
-        # Add a flag to indicate this is being reshown
+        # Also score passed projects
+        scored_projects = []
+        for project in passed_candidates:
+            score, match_strength = calculate_match_score(current_user, project)
+            scored_projects.append((project, score, match_strength))
+        
+        scored_projects.sort(key=lambda x: x[1], reverse=True)
+        selected_project, score, match_strength = scored_projects[0]
+        
+        # Add metadata
         selected_project.is_reshow = True
+        selected_project.match_score = score
+        selected_project.match_strength = match_strength
+        
         return selected_project
     
     # If no projects at all (including passed ones)

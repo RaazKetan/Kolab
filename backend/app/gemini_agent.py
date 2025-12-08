@@ -50,26 +50,35 @@ For task "semantic_search":
 """
 
 def _parse_json_from_response(resp):
+    text = None
     if getattr(resp, "text", None):
+        text = resp.text
+    else:
         try:
-            return json.loads(resp.text)
+            cand = resp.candidates[0]
+            parts = getattr(cand.content, "parts", []) or []
+            for p in parts:
+                t = getattr(p, "text", None)
+                if t:
+                    text = t
+                    break
         except Exception as e:
-            print(f"Failed to parse response.text as JSON: {e}")
-            print(f"Response text: {resp.text[:200]}...")
-    try:
-        cand = resp.candidates[0]
-        parts = getattr(cand.content, "parts", []) or []
-        for p in parts:
-            t = getattr(p, "text", None)
-            if t:
-                try:
-                    return json.loads(t)
-                except Exception as e:
-                    print(f"Failed to parse part text as JSON: {e}")
-                    print(f"Part text: {t[:200]}...")
-                    continue
-    except Exception as e:
-        print(f"Failed to access response candidates: {e}")
+            print(f"Failed to access response candidates: {e}")
+
+    if text:
+        try:
+            clean_text = text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            elif clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+            return json.loads(clean_text.strip())
+        except Exception as e:
+            print(f"Failed to parse text as JSON: {e}")
+            print(f"Text content: {text[:200]}...")
+            
     raise ValueError("Gemini returned non-JSON or empty response")
 
 def refine_pitch(raw_idea: str):
@@ -101,14 +110,113 @@ def analyze_repo(readme_text: str, files: list):
     )
     return _parse_json_from_response(resp)
 
-def analyze_repo_url(repo_url: str, readme_text: str, files: list):
+from .agents import create_github_agent
+from google.adk import Runner
+from google.adk.sessions import InMemorySessionService
+from types import SimpleNamespace
+import uuid
+
+async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list = None):
+    # Ensure GOOGLE_API_KEY is set for ADK
+    if "GOOGLE_API_KEY" not in os.environ:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            os.environ["GOOGLE_API_KEY"] = api_key
+
     try:
         print(f"Analyzing repo: {repo_url}")
+        
+        # Try to use GitHub Agent first
+        try:
+            agent = create_github_agent()
+            print("GitHub Agent initialized")
+            
+            # Create session service and runner
+            session_service = InMemorySessionService()
+            user_id = "user_" + str(uuid.uuid4())[:8]
+            session_id = "session_" + str(uuid.uuid4())[:8]
+            
+            # Create session using async method if possible, falling back to sync if needed.
+            # Inspect showed create_session is coroutine
+            await session_service.create_session(
+                app_name="agents",
+                user_id=user_id,
+                session_id=session_id
+            )
+            
+            runner = Runner(
+                app_name="agents",
+                agent=agent,
+                session_service=session_service
+            )
+
+            try:
+                prompt = f"""
+                Analyze the repository at {repo_url}.
+                Use your tools to explore the codebase, read the README, and understand the project.
+                
+                Return a valid JSON object with the following structure:
+                {{
+                    "project_title": "Title",
+                    "project_summary": "Detailed summary",
+                    "repo_url": "{repo_url}",
+                    "primary_languages": ["List", "of", "languages"],
+                    "frameworks_or_libraries": ["List", "of", "frameworks"],
+                    "project_type": "type e.g. Web App",
+                    "detected_domains": ["domain1"],
+                    "required_skills": ["skill1"],
+                    "complexity_level": "beginner/intermediate/advanced",
+                    "estimated_collaboration_roles": ["role1"]
+                }}
+                Output JSON only.
+                """
+                
+                # Construct message using duck-typing to satisfy validation
+                part = SimpleNamespace(text=prompt)
+                msg = SimpleNamespace(role="user", parts=[part])
+                
+                print("Running GitHub Agent via Runner (Async)...")
+                full_response_text = ""
+                
+                # Execute agent asynchronously
+                async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
+                    if hasattr(event, "text") and event.text:
+                        full_response_text += event.text
+                    elif hasattr(event, "content"):
+                        c = event.content
+                        if hasattr(c, "parts"):
+                            for p in c.parts:
+                                if hasattr(p, "text") and p.text:
+                                    full_response_text += p.text
+                
+                print(f"Agent raw response length: {len(full_response_text)}")
+                if full_response_text:
+                    dummy_resp = SimpleNamespace(text=full_response_text)
+                    return _parse_json_from_response(dummy_resp)
+            finally:
+                if hasattr(runner, "close"):
+                    print("Closing runner...")
+                    await runner.close()
+
+        except Exception as e:
+            print(f"GitHub Agent failed or not available: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fall through to legacy method
+        
+        print(f"Falling back to legacy analysis for {repo_url}")
         print(f"README length: {len(readme_text or '')}")
         print(f"Files count: {len(files or [])}")
         
         # Reuse analyze_repo and attach the URL into the response
-        data = analyze_repo(readme_text or "", files or [])
+        # analyze_repo is sync. We should run it in a thread to avoid blocking loop if it's heavy,
+        # but it's just one API call, so it might be okay. Better to be safe.
+        import asyncio
+        loop = asyncio.get_running_loop()
+        # Partial to pass args
+        from functools import partial
+        data = await loop.run_in_executor(None, partial(analyze_repo, readme_text or "", files or []))
+        
         print(f"Analysis result: {data}")
         
         if isinstance(data, dict):

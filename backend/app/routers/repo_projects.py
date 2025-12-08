@@ -7,36 +7,39 @@ import requests
 
 router = APIRouter(prefix="/repo", tags=["Repo"])
 
-def fetch_repo_readme_and_files(repo_url: str):
+import httpx
+
+async def fetch_repo_readme_and_files(repo_url: str):
     # naive fetch: README  a few key files via raw URLs
     parts = repo_url.rstrip("/").split("/")
     owner, repo = parts[-2], parts[-1]
     readme = ""
-    try:
-        r = requests.get(f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/README.md", timeout=10)
-        readme = r.text if r.status_code == 200 else ""
-    except Exception:
-        pass
-    # try common entry files
-    candidates = ["package.json", "requirements.txt", "pyproject.toml", "src/App.jsx", "main.py"]
-    files = []
-    for p in candidates:
+    async with httpx.AsyncClient(timeout=10) as client:
         try:
-            r = requests.get(f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{p}", timeout=10)
-            if r.status_code == 200 and r.text:
-                files.append({"path": p, "content": r.text[:5000]})
+            r = await client.get(f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/README.md")
+            readme = r.text if r.status_code == 200 else ""
         except Exception:
-            continue
+            pass
+        # try common entry files
+        candidates = ["package.json", "requirements.txt", "pyproject.toml", "src/App.jsx", "main.py"]
+        files = []
+        for p in candidates:
+            try:
+                r = await client.get(f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{p}")
+                if r.status_code == 200 and r.text:
+                    files.append({"path": p, "content": r.text[:5000]})
+            except Exception:
+                continue
     return readme, files
 
 @router.post("/project/from_url", response_model=schemas.ProjectResponse)
-def create_project_from_repo(
+async def create_project_from_repo(
     data: schemas.CreateProjectFromRepo,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    readme_text, files = fetch_repo_readme_and_files(data.repo_url)
-    ai = analyze_repo_url(data.repo_url, readme_text, files)
+    readme_text, files = await fetch_repo_readme_and_files(data.repo_url)
+    ai = await analyze_repo_url(data.repo_url, readme_text, files)
 
     project = schemas.ProjectCreate(
         title = ai.get("project_title") or "Untitled",
@@ -53,6 +56,9 @@ def create_project_from_repo(
     created = crud.create_project(db, project, owner_id=current_user.id)
     # Compute and store project embedding for semantic matching
     try:
+        # embed_text is sync, but lightweight-ish api call. 
+        # For full async, we should make it async too or run in executor.
+        # Keeping it simple for now, as it's not the crash reason.
         vector = embed_text(f"{created.title}\n{created.summary}\n{' '.join(created.languages or [])} {' '.join(created.frameworks or [])}")
         created.project_vector = vector
         db.add(created)
@@ -63,10 +69,10 @@ def create_project_from_repo(
     return created
 
 @router.post("/project/analyze", response_model=schemas.ProjectAnalyzeResponse)
-def analyze_project_from_repo(data: schemas.CreateProjectFromRepo):
+async def analyze_project_from_repo(data: schemas.CreateProjectFromRepo):
     try:
-        readme_text, files = fetch_repo_readme_and_files(data.repo_url)
-        ai = analyze_repo_url(data.repo_url, readme_text, files)
+        readme_text, files = await fetch_repo_readme_and_files(data.repo_url)
+        ai = await analyze_repo_url(data.repo_url, readme_text, files)
         return schemas.ProjectAnalyzeResponse(
             title = ai.get("project_title") or "Untitled",
             summary = ai.get("project_summary") or "unknown",

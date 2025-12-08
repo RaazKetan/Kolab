@@ -50,6 +50,7 @@ export function App() {
   const [messageNotifications, setMessageNotifications] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [isDiscoverLoading, setIsDiscoverLoading] = useState(false);
   const isLoadingRef = useRef(false);
   const isLoadingNotificationsRef = useRef(false);
 
@@ -626,7 +627,12 @@ export function App() {
         onProfileEdit={() => setView("profileEdit")}
         onDiscover={() => {
           setView("discover");
-          fetchNextProject();
+          setIsDiscoverLoading(true);
+          // Show loading screen for 2 seconds before fetching
+          setTimeout(() => {
+            fetchNextProject();
+            setIsDiscoverLoading(false);
+          }, 2000);
         }}
         onMatches={() => {
           setView("matches");
@@ -652,88 +658,118 @@ export function App() {
       <main className="p-6 flex justify-center">
         {view === "discover" && (
           <div className="w-full max-w-lg">
-            {/* Intelligent Search */}
-            <div className="mb-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search projects... (e.g., 'React beginner projects', 'AI mobile apps')"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  className="w-full px-4 py-3 pl-10 pr-4 border border-gray-300 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-400">🔍</span>
-                </div>
-                {isSearching && (
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Search Suggestions */}
-              {searchSuggestions.length > 0 && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm font-medium text-blue-800 mb-2">💡 Search Tips:</p>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    {searchSuggestions.map((suggestion, index) => (
-                      <li key={index}>• {suggestion}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Search Results */}
-              {searchResults.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Search Results</h3>
-                  <div className="space-y-3">
-                    {searchResults.map((result, index) => (
-                      <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                        <h4 className="font-medium text-gray-800">{result.title || 'Project'}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{result.description || result.summary}</p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {result.technologies?.map((tech, i) => (
-                            <span key={i} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+            {isDiscoverLoading ? (
+              <div className="flex flex-col items-center justify-center py-32">
+                {/* Minimal greyed-out robot icon */}
+                <div className="mb-12">
+                  <div className="text-5xl opacity-30 filter grayscale animate-pulse">
+                    🤖
                   </div>
                 </div>
-              )}
-            </div>
-
-            {isShowingReshown && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center">
-                  <span className="text-yellow-600 mr-2">🔄</span>
-                  <p className="text-sm text-yellow-800">
-                    You've seen all new projects! Showing projects you passed earlier.
+                
+                {/* Text content */}
+                <div className="text-center space-y-3">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Finding your perfect match
+                  </h2>
+                  <p className="text-sm text-gray-500 max-w-xs">
+                    Analyzing projects based on your skills and interests
                   </p>
                 </div>
+                
+                {/* Minimal progress indicator */}
+                <div className="mt-8 flex space-x-1.5">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                </div>
               </div>
-            )}
-            {currentProject ? (
-              <ProjectCard 
-                project={currentProject}
-                ownerUser={ownerUser}
-                isSwiping={isSwiping}
-                onLike={() => handleSwipe(true)}
-                onPass={() => handleSwipe(false)}
-              />
             ) : (
-              <div className="text-center text-gray-700 py-12">
-                <h2 className="text-3xl font-bold mb-4">
-                  No more projects to discover!
-                </h2>
-                <p className="text-xl text-gray-600">
-                  Check back later for new projects or create your own.
-                </p>
-              </div>
+              <>
+                {/* Intelligent Search */}
+                <div className="mb-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search projects... (e.g., 'React beginner projects', 'AI mobile apps')"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                      className="w-full px-4 py-3 pl-10 pr-4 border border-gray-300 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400">🔍</span>
+                    </div>
+                    {isSearching && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Search Suggestions */}
+                  {searchSuggestions.length > 0 && (
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-medium text-blue-800 mb-2">💡 Search Tips:</p>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        {searchSuggestions.map((suggestion, index) => (
+                          <li key={index}>• {suggestion}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Search Results */}
+                  {searchResults.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Search Results</h3>
+                      <div className="space-y-3">
+                        {searchResults.map((result, index) => (
+                          <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <h4 className="font-medium text-gray-800">{result.title || 'Project'}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{result.description || result.summary}</p>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {result.technologies?.map((tech, i) => (
+                                <span key={i} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                  {tech}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {isShowingReshown && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center">
+                      <span className="text-yellow-600 mr-2">🔄</span>
+                      <p className="text-sm text-yellow-800">
+                        You've seen all new projects! Showing projects you passed earlier.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {currentProject ? (
+                  <ProjectCard 
+                    project={currentProject}
+                    ownerUser={ownerUser}
+                    isSwiping={isSwiping}
+                    onLike={() => handleSwipe(true)}
+                    onPass={() => handleSwipe(false)}
+                  />
+                ) : (
+                  <div className="text-center text-gray-700 py-12">
+                    <h2 className="text-3xl font-bold mb-4">
+                      No more projects to discover!
+                    </h2>
+                    <p className="text-xl text-gray-600">
+                      Check back later for new projects or create your own.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

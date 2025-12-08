@@ -72,6 +72,10 @@ class ProjectResponse(BaseModel):
     owner_id: int
     is_active: bool
     created_at: datetime
+    # Match scoring fields
+    match_score: Optional[float] = None
+    match_strength: Optional[str] = None
+    is_reshow: Optional[bool] = None
     class Config:
         from_attributes = True
 
