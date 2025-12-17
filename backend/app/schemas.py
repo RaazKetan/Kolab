@@ -160,3 +160,20 @@ class ChatMessageResponse(BaseModel):
     created_at: datetime
     class Config:
         from_attributes = True
+
+class AnalyzeRepoRequest(BaseModel):
+    repo_url: str
+
+class AnalyzeRepoResponse(BaseModel):
+    url: str
+    name: str
+    commits_count: Optional[int] = 0
+    contributions: Optional[str] = ""
+    skills_detected: List[str] = []
+    languages: List[str] = []
+    frameworks: List[str] = []
+    last_analyzed: str
+    analysis_summary: Optional[str] = ""
+
+class AddRepositoryRequest(BaseModel):
+    repo_data: dict  # Contains the analyzed repository data

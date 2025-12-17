@@ -510,3 +510,264 @@ def semantic_search_projects(query: str, filters: dict = None) -> dict:
             ],
             "filters_applied": filters or {}
         }
+
+async def analyze_project_repo(repo_url: str):
+    """
+    Analyze a GitHub repository to extract project details for auto-filling the project creation form.
+    Uses the GitHub ADK agent to deeply analyze the repository code.
+    
+    Args:
+        repo_url: GitHub repository URL
+        
+    Returns:
+        dict: Project details including title, summary, languages, frameworks, skills, etc.
+    """
+    # Ensure GOOGLE_API_KEY is set for ADK
+    if "GOOGLE_API_KEY" not in os.environ:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            os.environ["GOOGLE_API_KEY"] = api_key
+
+    try:
+        print(f"Analyzing project repo: {repo_url}")
+        
+        # Use GitHub Agent for deep code analysis
+        agent = create_github_agent()
+        print("GitHub Agent initialized for project analysis")
+        
+        # Create session service and runner
+        session_service = InMemorySessionService()
+        user_id = "project_" + str(uuid.uuid4())[:8]
+        session_id = "session_" + str(uuid.uuid4())[:8]
+        
+        await session_service.create_session(
+            app_name="agents",
+            user_id=user_id,
+            session_id=session_id
+        )
+        
+        runner = Runner(
+            app_name="agents",
+            agent=agent,
+            session_service=session_service
+        )
+
+        try:
+            prompt = f"""
+            Analyze the GitHub repository at {repo_url} in detail.
+            
+            Use your tools to:
+            1. Read the README file
+            2. Explore the codebase structure
+            3. Identify the main programming languages and frameworks
+            4. Understand the project's purpose and functionality
+            5. Assess the complexity level
+            
+            Return a valid JSON object with this exact structure:
+            {{
+                "title": "Project title (concise, descriptive)",
+                "summary": "Detailed 2-3 sentence summary of what the project does",
+                "languages": ["Python", "JavaScript"],
+                "frameworks": ["React", "FastAPI"],
+                "project_type": "Web Application|Mobile App|CLI Tool|Library|etc",
+                "domains": ["E-commerce", "Social Media", "etc"],
+                "skills": ["Frontend Development", "API Design", "etc"],
+                "complexity": "beginner|intermediate|advanced",
+                "roles": ["Frontend Developer", "Backend Developer", "etc"]
+            }}
+            
+            Be specific and accurate. Output ONLY the JSON object, no additional text.
+            """
+            
+            # Construct message
+            part = SimpleNamespace(text=prompt)
+            msg = SimpleNamespace(role="user", parts=[part])
+            
+            print("Running GitHub Agent for project analysis...")
+            full_response_text = ""
+            
+            # Execute agent asynchronously
+            async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
+                if hasattr(event, "text") and event.text:
+                    full_response_text += event.text
+                elif hasattr(event, "content"):
+                    c = event.content
+                    if hasattr(c, "parts"):
+                        for p in c.parts:
+                            if hasattr(p, "text") and p.text:
+                                full_response_text += p.text
+            
+            print(f"Agent response length: {len(full_response_text)}")
+            
+            if full_response_text:
+                dummy_resp = SimpleNamespace(text=full_response_text)
+                result = _parse_json_from_response(dummy_resp)
+                
+                # Ensure repo_url is included
+                if isinstance(result, dict):
+                    result["repo_url"] = repo_url
+                    
+                return result
+            else:
+                raise Exception("No response from GitHub agent")
+                
+        finally:
+            if hasattr(runner, "close"):
+                print("Closing runner...")
+                await runner.close()
+
+    except Exception as e:
+        print(f"Error analyzing project repo {repo_url}: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return fallback response
+        repo_name = repo_url.split("/")[-1] if "/" in repo_url else "Project"
+        return {
+            "title": repo_name.replace("-", " ").replace("_", " ").title(),
+            "summary": f"GitHub repository: {repo_url}. Analysis failed, please fill details manually.",
+            "repo_url": repo_url,
+            "languages": [],
+            "frameworks": [],
+            "project_type": "Web Application",
+            "domains": [],
+            "skills": [],
+            "complexity": "intermediate",
+            "roles": []
+        }
+
+async def analyze_user_repository(repo_url: str):
+    """
+    Analyze a single GitHub repository for user profile.
+    Extracts commit history, contributions, skills, and technologies used.
+    
+    Args:
+        repo_url: GitHub repository URL
+        
+    Returns:
+        dict: Repository analysis including commits, skills, languages, frameworks, etc.
+    """
+    # Ensure GOOGLE_API_KEY is set for ADK
+    if "GOOGLE_API_KEY" not in os.environ:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            os.environ["GOOGLE_API_KEY"] = api_key
+
+    try:
+        print(f"Analyzing user repository: {repo_url}")
+        
+        # Use GitHub Agent for deep analysis
+        agent = create_github_agent()
+        print("GitHub Agent initialized for user repository analysis")
+        
+        # Create session service and runner
+        session_service = InMemorySessionService()
+        user_id = "user_repo_" + str(uuid.uuid4())[:8]
+        session_id = "session_" + str(uuid.uuid4())[:8]
+        
+        await session_service.create_session(
+            app_name="agents",
+            user_id=user_id,
+            session_id=session_id
+        )
+        
+        runner = Runner(
+            app_name="agents",
+            agent=agent,
+            session_service=session_service
+        )
+
+        try:
+            # Extract repo owner and name from URL
+            parts = repo_url.rstrip("/").split("/")
+            repo_name = parts[-1] if parts else "repository"
+            
+            prompt = f"""
+            Analyze the GitHub repository at {repo_url} to understand the user's contributions and skills.
+            
+            Use your tools to:
+            1. Get repository information and metadata
+            2. Analyze the commit history (look for recent commits, frequency, impact)
+            3. Identify programming languages used
+            4. Identify frameworks and libraries used
+            5. Understand the project scope and complexity
+            6. Assess the user's role and contributions
+            
+            Return a valid JSON object with this exact structure:
+            {{
+                "url": "{repo_url}",
+                "name": "{repo_name}",
+                "commits_count": <number of commits or estimate>,
+                "contributions": "<brief description of contributions, e.g., 'Major contributor', 'Creator and maintainer', 'Active contributor'>",
+                "skills_detected": ["skill1", "skill2", "skill3"],
+                "languages": ["Python", "JavaScript"],
+                "frameworks": ["React", "FastAPI"],
+                "analysis_summary": "<2-3 sentence summary of what was built and the user's role>"
+            }}
+            
+            Be specific and accurate. Output ONLY the JSON object, no additional text.
+            """
+            
+            # Construct message
+            part = SimpleNamespace(text=prompt)
+            msg = SimpleNamespace(role="user", parts=[part])
+            
+            print("Running GitHub Agent for user repository analysis...")
+            full_response_text = ""
+            
+            # Execute agent asynchronously
+            async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
+                if hasattr(event, "text") and event.text:
+                    full_response_text += event.text
+                elif hasattr(event, "content"):
+                    c = event.content
+                    if hasattr(c, "parts"):
+                        for p in c.parts:
+                            if hasattr(p, "text") and p.text:
+                                full_response_text += p.text
+            
+            print(f"Agent response length: {len(full_response_text)}")
+            
+            if full_response_text:
+                dummy_resp = SimpleNamespace(text=full_response_text)
+                result = _parse_json_from_response(dummy_resp)
+                
+                # Ensure required fields are present
+                if isinstance(result, dict):
+                    result.setdefault("url", repo_url)
+                    result.setdefault("name", repo_name)
+                    # Add timestamp
+                    from datetime import datetime
+                    result["last_analyzed"] = datetime.utcnow().isoformat() + "Z"
+                    
+                return result
+            else:
+                raise Exception("No response from GitHub agent")
+                
+        finally:
+            if hasattr(runner, "close"):
+                print("Closing runner...")
+                await runner.close()
+
+    except Exception as e:
+        print(f"Error analyzing user repository {repo_url}: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return fallback response
+        parts = repo_url.rstrip("/").split("/")
+        repo_name = parts[-1] if parts else "repository"
+        from datetime import datetime
+        
+        return {
+            "url": repo_url,
+            "name": repo_name,
+            "commits_count": 0,
+            "contributions": "Analysis failed",
+            "skills_detected": [],
+            "languages": [],
+            "frameworks": [],
+            "last_analyzed": datetime.utcnow().isoformat() + "Z",
+            "analysis_summary": f"Repository: {repo_url}. Analysis failed, please try again later."
+        }
+

@@ -7,8 +7,7 @@ export const ProfileEdit = ({ currentUser, onSave, onBack }) => {
     skills: currentUser.skills?.join(', ') || '',
     org_type: currentUser.org_type || 'college',
     org_name: currentUser.org_name || '',
-    github_profile_url: currentUser.github_profile_url || '',
-    github_selected_repos: currentUser.github_selected_repos?.map(r => r.url).join('\n') || ''
+    github_profile_url: currentUser.github_profile_url || ''
   });
 
   const handleSubmit = async (e) => {
@@ -21,8 +20,7 @@ export const ProfileEdit = ({ currentUser, onSave, onBack }) => {
         skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
         org_type: formData.org_type,
         org_name: formData.org_name.trim(),
-        github_profile_url: formData.github_profile_url.trim(),
-        github_selected_repos: formData.github_selected_repos.split('\n').map(r => r.trim()).filter(Boolean)
+        github_profile_url: formData.github_profile_url.trim()
       };
 
       const response = await fetch(`http://localhost:8000/users/${currentUser.id}`, {
@@ -132,23 +130,6 @@ export const ProfileEdit = ({ currentUser, onSave, onBack }) => {
             onChange={(e) => setFormData({ ...formData, github_profile_url: e.target.value })}
             placeholder="https://github.com/yourusername"
           />
-        </div>
-
-        {/* Repositories */}
-        <div>
-          <label className="block text-sm font-medium text-[#8b8c89] mb-1">
-            GitHub Repositories (one per line, max 5)
-          </label>
-          <textarea
-            className="w-full px-3 py-2 border border-[#8b8c89] rounded bg-[#e7ecef] text-[#274C77] focus:outline-none focus:ring-2 focus:ring-[#6096ba]"
-            rows="5"
-            value={formData.github_selected_repos}
-            onChange={(e) => setFormData({ ...formData, github_selected_repos: e.target.value })}
-            placeholder="https://github.com/yourusername/project1&#10;https://github.com/yourusername/project2"
-          />
-          <p className="text-xs text-[#8b8c89] mt-1">
-            These repositories will be analyzed to enhance your profile.
-          </p>
         </div>
 
         {/* Buttons */}

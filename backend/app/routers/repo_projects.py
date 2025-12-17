@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .. import schemas, models, auth, crud
 from ..database import get_db
-from ..gemini_agent import analyze_repo_url, embed_text
+from ..gemini_agent import analyze_repo_url, embed_text, analyze_project_repo
 import requests
 
 router = APIRouter(prefix="/repo", tags=["Repo"])
@@ -98,4 +98,44 @@ async def analyze_project_from_repo(data: schemas.CreateProjectFromRepo):
             skills = [],
             complexity = "intermediate",
             roles = []
+        )
+@router.post("/project/analyze-autofill", response_model=schemas.ProjectAnalyzeResponse)
+async def analyze_project_for_autofill(data: schemas.CreateProjectFromRepo):
+    """
+    Analyze a GitHub repository using the GitHub ADK agent to auto-fill project creation form.
+    This endpoint is specifically for the "Post Project" auto-fill feature.
+    """
+    try:
+        result = await analyze_project_repo(data.repo_url)
+        
+        return schemas.ProjectAnalyzeResponse(
+            title=result.get("title") or "Untitled",
+            summary=result.get("summary") or "No summary available",
+            repo_url=result.get("repo_url") or data.repo_url,
+            languages=result.get("languages") or [],
+            frameworks=result.get("frameworks") or [],
+            project_type=result.get("project_type") or "Web Application",
+            domains=result.get("domains") or [],
+            skills=result.get("skills") or [],
+            complexity=result.get("complexity") or "intermediate",
+            roles=result.get("roles") or [],
+        )
+    except Exception as e:
+        print(f"Error in analyze_project_for_autofill: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return fallback response
+        repo_name = data.repo_url.split("/")[-1] if "/" in data.repo_url else "Project"
+        return schemas.ProjectAnalyzeResponse(
+            title=repo_name.replace("-", " ").replace("_", " ").title(),
+            summary="Analysis failed. Please fill in the details manually.",
+            repo_url=data.repo_url,
+            languages=[],
+            frameworks=[],
+            project_type="Web Application",
+            domains=[],
+            skills=[],
+            complexity="intermediate",
+            roles=[]
         )
