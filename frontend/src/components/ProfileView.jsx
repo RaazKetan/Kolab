@@ -6,6 +6,8 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [user, setUser] = useState(currentUser);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysisData, setAnalysisData] = useState(null);
 
   const handleAnalyzeRepo = async () => {
     if (!repoUrl.trim()) {
@@ -25,7 +27,7 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Step 1: Analyze the repository
+      // Analyze the repository
       const analyzeResponse = await fetch('http://localhost:8000/analyze-repo/user-repo', {
         method: 'POST',
         headers: {
@@ -42,7 +44,26 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
       const analysisData = await analyzeResponse.json();
       console.log('Analysis data:', analysisData);
 
-      // Step 2: Add the analyzed repository to user profile
+      // Show modal with analysis results
+      setAnalysisData(analysisData);
+      setShowAnalysisModal(true);
+      setRepoUrl('');
+      setError('');
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err.message || 'Failed to analyze repository');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleConfirmAddRepo = async () => {
+    if (!analysisData) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Add the analyzed repository to user profile
       const addResponse = await fetch(`http://localhost:8000/users/${user.id}/repositories`, {
         method: 'POST',
         headers: {
@@ -60,14 +81,13 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
       const updatedUser = await addResponse.json();
       console.log('Updated user:', updatedUser);
       setUser(updatedUser);
-      setRepoUrl('');
-      setError('');
-      setSuccessMessage('Repository analyzed and added successfully!');
+      setShowAnalysisModal(false);
+      setAnalysisData(null);
+      setSuccessMessage('Repository added successfully!');
     } catch (err) {
       console.error('Error:', err);
-      setError(err.message || 'Failed to analyze repository');
-    } finally {
-      setAnalyzing(false);
+      setError(err.message || 'Failed to add repository');
+      setShowAnalysisModal(false);
     }
   };
 
@@ -397,6 +417,181 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
         </div>
       </div>
     </div>
+
+    {/* Repository Analysis Modal */}
+    {showAnalysisModal && analysisData && (
+      <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          {/* Modal Header */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-6 py-4 text-white rounded-t-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-bold flex items-center">
+                <span className="mr-2">🔍</span>
+                Repository Analysis
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAnalysisModal(false);
+                  setAnalysisData(null);
+                }}
+                className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+              >
+                <span className="text-2xl">×</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Modal Content */}
+          <div className="p-6 space-y-6">
+            {/* Repository Info */}
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <span className="mr-2">📦</span>
+                Repository Details
+              </h4>
+              <div className="space-y-2">
+                <div>
+                  <span className="text-sm font-medium text-gray-600">Name:</span>
+                  <p className="text-gray-800 font-semibold">{analysisData.name}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-600">URL:</span>
+                  <a
+                    href={analysisData.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline text-sm block break-all"
+                  >
+                    {analysisData.url}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Contribution Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-green-700">Commits</span>
+                  <span className="text-2xl">📊</span>
+                </div>
+                <p className="text-3xl font-bold text-green-800 mt-2">{analysisData.commits_count || 0}</p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-blue-700">Role</span>
+                  <span className="text-2xl">👤</span>
+                </div>
+                <p className="text-lg font-semibold text-blue-800 mt-2">{analysisData.contributions || 'Contributor'}</p>
+              </div>
+            </div>
+
+            {/* Analysis Summary */}
+            {analysisData.analysis_summary && (
+              <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                <h4 className="text-sm font-semibold text-purple-800 mb-2 flex items-center">
+                  <span className="mr-2">📝</span>
+                  Analysis Summary
+                </h4>
+                <p className="text-gray-700 text-sm leading-relaxed">{analysisData.analysis_summary}</p>
+              </div>
+            )}
+
+            {/* Skills Detected */}
+            {analysisData.skills_detected && analysisData.skills_detected.length > 0 && (
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                  <span className="mr-2">🛠️</span>
+                  Skills Detected
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {analysisData.skills_detected.map((skill, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full border border-blue-200"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Technologies */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Languages */}
+              {analysisData.languages && analysisData.languages.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                    <span className="mr-2">💻</span>
+                    Languages
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisData.languages.map((lang, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full border border-green-200"
+                      >
+                        {lang}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Frameworks */}
+              {analysisData.frameworks && analysisData.frameworks.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                    <span className="mr-2">⚡</span>
+                    Frameworks
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisData.frameworks.map((fw, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full border border-purple-200"
+                      >
+                        {fw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Last Analyzed */}
+            {analysisData.last_analyzed && (
+              <div className="text-center">
+                <p className="text-xs text-gray-500">
+                  Analyzed on {new Date(analysisData.last_analyzed).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setShowAnalysisModal(false);
+                setAnalysisData(null);
+              }}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmAddRepo}
+              className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all shadow-lg font-medium flex items-center gap-2"
+            >
+              <span>✓</span>
+              Add to Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 };

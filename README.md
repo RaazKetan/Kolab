@@ -1,109 +1,189 @@
-# CollabFoundry - Tinder for Projects
+# CollabFoundry - AI-Powered Talent & Project Collaboration Platform
 
-A platform that connects students and professionals who want to collaborate on real projects, featuring a Tinder-like matching interface.
+A comprehensive platform for connecting professionals and organizations through intelligent project matching, AI-powered talent sourcing, and skill gap analysis.
 
-## Features
+## Overview
 
-- 🔐 User authentication (login/register)
-- 🎯 Tinder-like project discovery with swipe functionality
-- 🤝 AI-powered project matching based on skills
-- 📱 Responsive design for mobile and desktop
-- 🚀 FastAPI backend with SQLite database
-- ⚡ Real-time project recommendations
+CollabFoundry is an enterprise-grade collaboration platform that leverages artificial intelligence to facilitate meaningful connections between talent and opportunities. The platform features intelligent matching algorithms, natural language search capabilities, and automated skill assessment tools.
+
+## Core Features
+
+### Project Discovery & Matching
+- **Intelligent Project Discovery** - AI-powered recommendation engine
+- **Smart Matching Algorithm** - Skills-based project recommendations
+- **Interactive Review System** - Streamlined project evaluation workflow
+- **Real-time Notifications** - Stay updated on matches and messages
+
+### AI-Powered Talent Sourcing
+- **Natural Language Search** - Find candidates using conversational queries
+- **Semantic Matching** - Vector-based similarity search for precise results
+- **Candidate Ranking** - AI-generated match scores (0-100%)
+- **Comprehensive Profiles** - Detailed candidate information with work history
+
+### Skill Gap Analysis & Learning Recommendations
+- **Interview Transcript Analysis** - AI-powered skill assessment
+- **Gap Identification** - Prioritized skill gaps with impact analysis
+- **Personalized Learning Roadmaps** - Phase-based learning plans with timelines
+- **Course Recommendations** - Curated resources from multiple platforms
+- **Readiness Scoring** - Quantifiable deployment readiness metrics
+
+### GitHub Integration
+- **Repository Analysis** - Automated skill extraction from GitHub repositories
+- **Profile Enhancement** - Merge detected skills with existing profiles
+- **Technology Detection** - Identify languages, frameworks, and tools
+
+### Communication & Collaboration
+- **Real-time Messaging** - Project-based chat system
+- **Notification System** - Stay informed of important updates
+- **Profile Management** - Comprehensive user profiles with skills and experience
+
+## Technology Stack
+
+### Backend
+- **FastAPI** - High-performance Python web framework
+- **SQLAlchemy** - Advanced ORM with relationship management
+- **SQLite** - Embedded database for development
+- **Google Gemini AI** - Advanced language model for analysis
+- **JWT Authentication** - Secure token-based authentication
+- **Pydantic** - Data validation and serialization
+
+### Frontend
+- **React** - Component-based UI library
+- **Vite** - Next-generation frontend tooling
+- **Tailwind CSS** - Utility-first CSS framework
+- **Modern JavaScript** - ES6+ features
 
 ## Quick Start
 
 ### Prerequisites
+- Python 3.8 or higher
+- Node.js 16 or higher
+- Google Gemini API key
 
-- Python 3.8+
-- Node.js 16+ (for frontend)
+### Installation
 
-### Backend Setup
+#### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd Conekt
+```
 
-1. Install dependencies:
+#### 2. Backend Setup
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-2. Set environment variables (optional):
+Create a `.env` file:
 ```bash
-export DATABASE_URL="sqlite:///./collabfoundry.db"
-export GEMINI_API_KEY="your-gemini-api-key"
+DATABASE_URL=sqlite:///./collabfoundry.db
+GEMINI_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_api_key_here
 ```
 
-3. Start the backend:
+Start the backend server:
 ```bash
 python ../start_backend.py
 ```
 
-The API will be available at `http://localhost:8000`
+API available at: `http://localhost:8000`
 
-### Frontend Setup
-
-1. Install dependencies:
+#### 3. Frontend Setup
 ```bash
 cd frontend
 npm install
+npm run dev
 ```
 
-2. Start the frontend:
-```bash
-python ../start_frontend.py
+Application available at: `http://localhost:5173`
+
+### Initial Data Seeding
+
+The system includes pre-populated demo data. To seed the talent database:
+
+```javascript
+// In browser console after logging in:
+fetch('http://localhost:8000/talent/seed', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+})
 ```
 
-The app will be available at `http://localhost:5173`
-
-## Demo Credentials
-
-The system comes pre-populated with dummy users:
-
-- **Alex Johnson**: alex@example.com / password123
-- **Sarah Chen**: sarah@example.com / password123
-- **Mike Rodriguez**: mike@example.com / password123
-- **Emma Wilson**: emma@example.com / password123
-- **David Kim**: david@example.com / password123
-
-## How to Use
-
-1. **Register/Login**: Create a new account or use demo credentials
-2. **Discover Projects**: Swipe through projects like Tinder
-   - ❌ **Pass**: Skip projects you're not interested in
-   - ❤️ **Like**: Save projects you want to collaborate on
-3. **View Matches**: See all projects you've liked
-4. **Get Recommendations**: AI-powered suggestions based on your skills
-
-## API Endpoints
+## API Documentation
 
 ### Authentication
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - Login user
-- `GET /auth/me` - Get current user
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User authentication
+- `GET /auth/me` - Retrieve current user profile
 
-### Projects
+### Project Management
 - `GET /projects/` - List all projects
-- `GET /projects/{id}` - Get specific project
+- `GET /projects/{id}` - Retrieve specific project
 - `POST /projects/` - Create new project
+- `PUT /projects/{id}` - Update project details
 
-### Matching
-- `GET /matching/discover` - Get next project to discover
-- `POST /matching/swipe` - Swipe on a project (like/pass)
-- `GET /matching/matches` - Get user's liked projects
-- `GET /matching/recommendations` - Get AI recommendations
+### Matching & Discovery
+- `GET /matching/discover` - Get next recommended project
+- `POST /matching/swipe` - Evaluate project (like/pass)
+- `GET /matching/matches` - Retrieve user's liked projects
+- `GET /matching/recommendations` - Get AI-powered recommendations
 
-## Tech Stack
+### Talent Sourcing
+- `POST /talent/search` - Search candidates with natural language
+- `POST /talent/seed` - Initialize candidate database
+- `GET /talent/candidate/{id}` - Retrieve candidate details
 
-### Backend
-- **FastAPI** - Modern Python web framework
-- **SQLAlchemy** - ORM for database operations
-- **SQLite** - Lightweight database
-- **JWT** - Authentication tokens
-- **Pydantic** - Data validation
+### Skill Gap Analysis
+- `POST /skill-gap/analyze` - Analyze interview and generate roadmap
+- `GET /skill-gap/candidate/{candidate_id}` - Get candidate's analyses
+- `GET /skill-gap/analysis/{analysis_id}` - Retrieve specific analysis
 
-### Frontend
-- **React** - UI library
-- **Vite** - Build tool and dev server
-- **CSS3** - Styling with modern features
+### GitHub Integration
+- `POST /analyze-repo/user-repo` - Analyze GitHub repository
+- `POST /users/{user_id}/repositories` - Add repository to profile
+- `DELETE /users/{user_id}/repositories/{index}` - Remove repository
+
+### User Management
+- `GET /users/` - List all users
+- `GET /users/{id}` - Retrieve user profile
+- `PUT /users/{id}` - Update user profile
+
+## Usage Guide
+
+### For Hiring Teams
+
+#### Finding Talent
+1. Navigate to "Search Talent"
+2. Enter natural language query describing ideal candidate
+3. Review ranked results with match scores
+4. Click "Analyze Skills" for detailed assessment
+
+#### Conducting Skill Gap Analysis
+1. Select a candidate from search results
+2. Click "📊 Analyze Skills"
+3. Enter target role and paste interview transcript
+4. Review comprehensive analysis including:
+   - Readiness score
+   - Identified strengths
+   - Skill gaps with priorities
+   - Personalized learning roadmap
+   - Course recommendations
+
+### For Candidates
+
+#### Building Your Profile
+1. Complete profile with skills and experience
+2. Add GitHub repositories for automatic skill detection
+3. Review and confirm detected technologies
+4. Skills are merged with existing profile data
+
+#### Discovering Projects
+1. Browse recommended projects
+2. Review project details and requirements
+3. Like projects of interest
+4. View matches and initiate conversations
 
 ## Project Structure
 
@@ -111,20 +191,32 @@ The system comes pre-populated with dummy users:
 Conekt/
 ├── backend/
 │   ├── app/
-│   │   ├── routers/     # API route handlers
-│   │   ├── models.py    # Database models
-│   │   ├── schemas.py   # Pydantic schemas
-│   │   ├── auth.py      # Authentication logic
-│   │   └── main.py      # FastAPI app
-│   ├── requirements.txt
-│   └── seed_data.py     # Dummy data seeder
+│   │   ├── routers/
+│   │   │   ├── auth.py              # Authentication
+│   │   │   ├── users.py             # User management
+│   │   │   ├── projects.py          # Project CRUD
+│   │   │   ├── matching.py          # Matching algorithm
+│   │   │   ├── talent.py            # Talent search
+│   │   │   ├── skill_gap.py         # Skill gap analysis
+│   │   │   ├── analyze_repo.py      # GitHub integration
+│   │   │   ├── chat.py              # Messaging
+│   │   │   └── requirements.py      # Requirements matching
+│   │   ├── models.py                # Database models
+│   │   ├── schemas.py               # Pydantic schemas
+│   │   ├── auth.py                  # Auth utilities
+│   │   ├── gemini_agent.py          # AI integration
+│   │   └── main.py                  # FastAPI application
+│   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx      # Main React component
-│   │   └── App.css      # Styles
+│   │   ├── components/
+│   │   │   ├── TalentSearch.jsx     # Talent search UI
+│   │   │   ├── SkillGapAnalysis.jsx # Analysis modal
+│   │   │   ├── ProfileView.jsx      # User profile
+│   │   │   └── ...
+│   │   ├── App.jsx                  # Main application
+│   │   └── main.jsx                 # Entry point
 │   └── package.json
-├── start_backend.py     # Backend startup script
-├── start_frontend.py    # Frontend startup script
 └── README.md
 ```
 
@@ -132,56 +224,78 @@ Conekt/
 
 ### Adding New Features
 
-1. **Backend**: Add new routes in `backend/app/routers/`
-2. **Frontend**: Update `frontend/src/App.jsx` for new UI components
-3. **Database**: Modify models in `backend/app/models.py`
+#### Backend
+1. Create new router in `backend/app/routers/`
+2. Define database models in `models.py`
+3. Create Pydantic schemas in `schemas.py`
+4. Register router in `main.py`
 
-### Database Seeding
+#### Frontend
+1. Create component in `frontend/src/components/`
+2. Add routing logic in `App.jsx`
+3. Update navigation in `Navigation.jsx`
 
-The system automatically seeds with dummy data on startup. To re-seed:
+### Database Migrations
 
-```python
-from backend.app.seed_data import seed_database
-seed_database()
-```
+The system uses SQLAlchemy with automatic table creation. Models are defined in `models.py` and tables are created on startup.
 
 ## Deployment
 
-### Deploy to Google Cloud Run
+### Google Cloud Run
 
-Quick deployment (5 minutes):
-
+Quick deployment:
 ```bash
 ./deploy.sh
 ```
 
-For detailed deployment instructions, see:
-- **Quick Start:** [QUICKSTART_DEPLOY.md](./QUICKSTART_DEPLOY.md)
-- **Full Guide:** [DEPLOYMENT.md](./DEPLOYMENT.md)
+For detailed instructions, see:
+- [Quick Start Guide](./QUICKSTART_DEPLOY.md)
+- [Full Deployment Guide](./DEPLOYMENT.md)
 
-The deployment includes:
-- ✅ Backend API on Cloud Run
-- ✅ Frontend on Cloud Run with Nginx
-- ✅ Automated Docker builds
-- ✅ Environment configuration
-- ✅ HTTPS enabled by default
+### Environment Variables
 
-### Deployment Files
+Required environment variables:
+- `DATABASE_URL` - Database connection string
+- `GEMINI_API_KEY` - Google Gemini API key
+- `GOOGLE_API_KEY` - Google API key (for ADK)
+- `SECRET_KEY` - JWT secret key
 
-- `backend/Dockerfile` - Backend container configuration
-- `frontend/Dockerfile` - Frontend container configuration
-- `cloudbuild.yaml` - Cloud Build configuration
-- `deploy.sh` - Interactive deployment script
-- `deploy-cloudbuild.sh` - Cloud Build deployment script
+## Security
+
+- JWT-based authentication
+- Password hashing with secure algorithms
+- CORS configuration for API security
+- Input validation with Pydantic
+- SQL injection prevention via ORM
+
+## Performance
+
+- Vector-based semantic search for fast matching
+- Efficient database indexing
+- Optimized AI model usage
+- Caching strategies for frequently accessed data
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Support
+
+For issues and questions:
+- Create an issue in the repository
+- Check existing documentation
+- Review API documentation at `/docs` endpoint
 
 ## License
 
 MIT License - see LICENSE file for details
+
+## Acknowledgments
+
+- Google Gemini AI for advanced language processing
+- FastAPI framework for robust backend architecture
+- React community for frontend excellence

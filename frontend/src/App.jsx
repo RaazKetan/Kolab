@@ -14,6 +14,7 @@ import { MyProjects } from './components/MyProjects';
 import { ProfileEdit } from './components/ProfileEdit';
 import { ProjectLikes } from './components/ProjectLikes';
 import { LandingPage } from './components/LandingPage';
+import { TalentSearch } from './components/TalentSearch';
 const API_BASE = "http://localhost:8000";
 
 export function App() {
@@ -653,6 +654,9 @@ export function App() {
         onRequirements={() => {
           setView("requirements");
         }}
+        onSearchTalent={() => {
+          setView("searchTalent");
+        }}
       />
 
       <main className="p-6 flex justify-center">
@@ -913,6 +917,12 @@ export function App() {
                 setView("userDetails");
               }
             }}
+          />
+        )}
+
+        {view === "searchTalent" && (
+          <TalentSearch 
+            onBack={() => setView("discover")}
           />
         )}
       </main>

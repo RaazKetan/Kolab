@@ -99,18 +99,24 @@ def add_repository_to_user(
         existing_repos.append(repo_data.repo_data)
         user.github_selected_repos = existing_repos
         
-        # Update user's top_languages based on all repositories
-        all_languages = set()
-        all_skills = set()
+        # Merge languages, skills, and frameworks from repositories with existing data
+        all_languages = set(user.top_languages or [])  # Start with existing
+        all_skills = set(user.skills or [])  # Start with existing
+        all_frameworks = set(user.top_frameworks or [])  # Start with existing
+        
         for repo in existing_repos:
             all_languages.update(repo.get("languages", []))
             all_skills.update(repo.get("skills_detected", []))
+            all_frameworks.update(repo.get("frameworks", []))
         
-        user.top_languages = list(all_languages)[:10]  # Keep top 10
+        # Update user profile with merged data
+        user.top_languages = list(all_languages)
+        user.skills = list(all_skills)
+        user.top_frameworks = list(all_frameworks)
         
-        # Recompute user embedding
+        # Recompute user embedding with all data
         try:
-            vec_text = f"{user.name} {user.bio} {' '.join(user.skills or [])} {' '.join(user.top_languages or [])}"
+            vec_text = f"{user.name} {user.bio} {' '.join(user.skills or [])} {' '.join(user.top_languages or [])} {' '.join(user.top_frameworks or [])}"
             user.user_vector = embed_text(vec_text)
         except Exception as e:
             print(f"Failed to update user embedding: {e}")
