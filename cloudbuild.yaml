@@ -52,8 +52,15 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      # Cloud SQL connection
+      - '--add-cloudsql-instances'
+      - '${_CLOUD_SQL_CONNECTION_NAME}'
+      # Environment variables
       - '--set-env-vars'
-      - 'DATABASE_URL=${_DATABASE_URL},GEMINI_API_KEY=${_GEMINI_API_KEY},SECRET_KEY=${_SECRET_KEY},ALGORITHM=HS256,ACCESS_TOKEN_EXPIRE_MINUTES=30'
+      - 'DATABASE_TYPE=postgresql,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION_NAME},DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},GEMINI_API_KEY=${_GEMINI_API_KEY},GOOGLE_API_KEY=${_GOOGLE_API_KEY},SECRET_KEY=${_SECRET_KEY},ALGORITHM=HS256,ACCESS_TOKEN_EXPIRE_MINUTES=30'
+      # Use secrets for sensitive data (optional, recommended)
+      # - '--set-secrets'
+      # - 'DB_PASSWORD=db-password:latest,GEMINI_API_KEY=gemini-api-key:latest'
     id: 'deploy-backend'
     waitFor: ['push-backend']
 
@@ -84,8 +91,13 @@ images:
 # Substitution variables (can be overridden)
 substitutions:
   _REGION: 'us-central1'
-  _DATABASE_URL: 'postgresql://user:pass@host/db'  # Override this
+  # Cloud SQL Configuration
+  _CLOUD_SQL_CONNECTION_NAME: 'your-project:region:instance-name'  # Override this
+  _DB_USER: 'collabfoundry_user'  # Override this
+  _DB_NAME: 'collabfoundry'
+  # API Keys (consider using Secret Manager instead)
   _GEMINI_API_KEY: 'your-key-here'  # Override this
+  _GOOGLE_API_KEY: 'your-key-here'  # Override this
   _SECRET_KEY: 'your-secret-key-here'  # Override this
 
 options:

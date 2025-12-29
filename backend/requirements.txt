@@ -9,4 +9,5 @@ httpx
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
-google-adk
+google-adkcloud-sql-python-connector[pg8000]==1.11.0
+pg8000==1.31.2

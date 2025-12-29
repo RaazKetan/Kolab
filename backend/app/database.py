@@ -5,9 +5,24 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL)
+# Determine database type from environment
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "sqlite").lower()
+
+if DATABASE_TYPE == "postgresql":
+    # Production: Use Cloud SQL PostgreSQL
+    print("Using PostgreSQL (Cloud SQL) database")
+    from .cloud_sql import get_cloud_sql_engine
+    engine = get_cloud_sql_engine()
+else:
+    # Development: Use SQLite
+    print("Using SQLite database")
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./collabfoundry.db")
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+    )
+
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 
