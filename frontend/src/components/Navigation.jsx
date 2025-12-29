@@ -10,6 +10,7 @@ export const Navigation = ({
   onMyProjects,
   onProjectLikes,
   onRequirements,
+  onSearchTalent,
   currentUser,
   onProfileEdit
 }) => (
@@ -36,7 +37,8 @@ export const Navigation = ({
         { name: "Post Project", key: "postProject", onClick: onPostProject },
         { name: "My Projects", key: "myProjects", onClick: onMyProjects },
         { name: "Project Likes", key: "projectLikes", onClick: onProjectLikes },
-        { name: "Find Collaborators", key: "requirements", onClick: onRequirements }
+        { name: "Find Collaborators", key: "requirements", onClick: onRequirements },
+        { name: "Search Talent", key: "searchTalent", onClick: onSearchTalent }
       ].map((item) => (
         <button
           key={item.key}

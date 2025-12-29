@@ -72,6 +72,10 @@ class ProjectResponse(BaseModel):
     owner_id: int
     is_active: bool
     created_at: datetime
+    # Match scoring fields
+    match_score: Optional[float] = None
+    match_strength: Optional[str] = None
+    is_reshow: Optional[bool] = None
     class Config:
         from_attributes = True
 
@@ -156,3 +160,20 @@ class ChatMessageResponse(BaseModel):
     created_at: datetime
     class Config:
         from_attributes = True
+
+class AnalyzeRepoRequest(BaseModel):
+    repo_url: str
+
+class AnalyzeRepoResponse(BaseModel):
+    url: str
+    name: str
+    commits_count: Optional[int] = 0
+    contributions: Optional[str] = ""
+    skills_detected: List[str] = []
+    languages: List[str] = []
+    frameworks: List[str] = []
+    last_analyzed: str
+    analysis_summary: Optional[str] = ""
+
+class AddRepositoryRequest(BaseModel):
+    repo_data: dict  # Contains the analyzed repository data

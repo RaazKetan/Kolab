@@ -68,3 +68,45 @@ class ChatMessage(Base):
     to_user_id = Column(Integer, index=True)
     content = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Candidate(Base):
+    __tablename__ = "candidates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    email = Column(String, unique=True, index=True)
+    phone = Column(String)
+    title = Column(String)  # e.g., "Senior Software Engineer"
+    location = Column(String)  # e.g., "San Francisco, CA"
+    experience_years = Column(Integer)  # Total years of experience
+    current_company = Column(String)
+    current_role = Column(String)
+    work_history = Column(JSON)  # [{company, role, duration, description}]
+    skills = Column(JSON)  # ["Python", "React", "AWS"]
+    certifications = Column(JSON)  # ["AWS Certified", "Google Cloud Professional"]
+    education = Column(JSON)  # [{degree, institution, year}]
+    summary = Column(Text)  # Resume summary/bio
+    candidate_vector = Column(JSON)  # Embedding vector for semantic matching
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SkillGapAnalysis(Base):
+    __tablename__ = "skill_gap_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, index=True)  # Foreign key to Candidate
+    interview_transcript = Column(Text)  # Raw interview transcript
+    target_role = Column(String)  # Role being evaluated for
+    required_skills = Column(JSON)  # Skills needed for target role
+    current_skills = Column(JSON)  # Skills demonstrated in interview
+    skill_gaps = Column(JSON)  # Identified gaps with proficiency levels
+    strengths = Column(JSON)  # Areas where candidate excels
+    learning_roadmap = Column(JSON)  # Structured learning path with timeline
+    recommended_courses = Column(JSON)  # Course recommendations
+    readiness_score = Column(Integer)  # 0-100 score
+    deployment_timeline = Column(String)  # Estimated time to readiness
+    analysis_summary = Column(Text)  # AI-generated summary
+    analyzed_by_user_id = Column(Integer, index=True)  # User who ran analysis
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

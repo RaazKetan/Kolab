@@ -241,6 +241,98 @@ export const PostProject = ({ postProject, setPostProject, myProjects, onSubmit,
 
       {/* Content */}
       <div className="p-8">
+        {/* GitHub Repo Auto-Fill Section */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 mb-8 border border-blue-100">
+          <h3 className="text-2xl font-semibold text-gray-900 mb-3 flex items-center">
+            <span className="text-3xl mr-3">🔗</span>
+            Auto-Fill from GitHub
+          </h3>
+          <p className="text-gray-600 mb-6 text-sm">
+            Paste your GitHub repository URL and let our AI analyze the code to automatically fill out all project details.
+          </p>
+          
+          <div className="flex gap-3">
+            <input
+              type="url"
+              placeholder="https://github.com/username/repository"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+              id="github-repo-url"
+            />
+            <button
+              onClick={async () => {
+                const input = document.getElementById('github-repo-url');
+                const repoUrl = input.value.trim();
+                
+                if (!repoUrl) {
+                  alert('Please enter a GitHub repository URL');
+                  return;
+                }
+                
+                if (!repoUrl.includes('github.com')) {
+                  alert('Please enter a valid GitHub URL');
+                  return;
+                }
+                
+                setIsAnalyzing(true);
+                try {
+                  const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}/repo/project/analyze-autofill`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ repo_url: repoUrl })
+                  });
+                  
+                  if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Auto-fill the form
+                    setPostProject({
+                      title: data.title || '',
+                      summary: data.summary || '',
+                      repo_url: data.repo_url || repoUrl,
+                      languages: Array.isArray(data.languages) ? data.languages.join(', ') : '',
+                      frameworks: Array.isArray(data.frameworks) ? data.frameworks.join(', ') : '',
+                      project_type: data.project_type || '',
+                      domains: Array.isArray(data.domains) ? data.domains.join(', ') : '',
+                      skills: Array.isArray(data.skills) ? data.skills.join(', ') : '',
+                      complexity: data.complexity || 'intermediate',
+                      roles: Array.isArray(data.roles) ? data.roles.join(', ') : ''
+                    });
+                    
+                    alert('✅ Form auto-filled successfully! Please review and submit.');
+                    input.value = '';
+                  } else {
+                    const error = await response.text();
+                    alert(`Failed to analyze repository: ${error}`);
+                  }
+                } catch (error) {
+                  console.error('Error analyzing repo:', error);
+                  alert('Failed to analyze repository. Please try again.');
+                } finally {
+                  setIsAnalyzing(false);
+                }
+              }}
+              disabled={isAnalyzing}
+              className={`px-8 py-3 rounded-xl font-semibold transition-all text-white ${
+                isAnalyzing 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl active:scale-95'
+              }`}
+            >
+              {isAnalyzing ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Analyzing...
+                </div>
+              ) : (
+                '✨ Auto-Fill'
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Gemini Assistant Section */}
         <div className="bg-purple-50 rounded-xl p-6 mb-8 border border-purple-200">
           <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">

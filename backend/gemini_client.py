@@ -3,7 +3,7 @@ from typing import Any, Dict
 from google import genai
 
 
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-2.5-pro"
 
 
 class GeminiClient:
@@ -17,12 +17,8 @@ class GeminiClient:
 			contents=json.dumps(body, ensure_ascii=False),
 			system_instruction=self.system_prompt,
 			generation_config={
-				"temperature": 0.0,
-				"top_p": 1.0,
-				"top_k": 40,
-				"max_output_tokens": 2048,
 				"response_mime_type": "application/json",
-			},
+			}
 		)
 		try:
 			return json.loads(resp.text)
