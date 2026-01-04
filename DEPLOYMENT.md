@@ -59,7 +59,7 @@ gcloud sql users set-password postgres \
     --password=YOUR_SECURE_PASSWORD
 
 # Create database
-gcloud sql databases create collabfoundry --instance=conekt-db
+gcloud sql databases create origin --instance=conekt-db
 
 # Get connection name
 gcloud sql instances describe conekt-db --format='value(connectionName)'
@@ -68,7 +68,7 @@ gcloud sql instances describe conekt-db --format='value(connectionName)'
 
 Your DATABASE_URL will be:
 ```
-postgresql://postgres:YOUR_PASSWORD@/collabfoundry?host=/cloudsql/CONNECTION_NAME
+postgresql://postgres:YOUR_PASSWORD@/origin?host=/cloudsql/CONNECTION_NAME
 ```
 
 **Note:** You'll need to add `--add-cloudsql-instances=CONNECTION_NAME` to your Cloud Run deployment.
@@ -81,7 +81,7 @@ Create a file called `.env.deploy` (this file is gitignored):
 # Backend Environment Variables
 export GEMINI_API_KEY="your-gemini-api-key"
 export SECRET_KEY="$(openssl rand -base64 32)"
-export DATABASE_URL="postgresql://postgres:password@/collabfoundry?host=/cloudsql/PROJECT:REGION:INSTANCE"
+export DATABASE_URL="postgresql://postgres:password@/origin?host=/cloudsql/PROJECT:REGION:INSTANCE"
 
 # GCP Settings
 export GCP_PROJECT_ID="your-project-id"

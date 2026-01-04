@@ -1,4 +1,4 @@
-# CollabFoundry Frontend
+# Origin Frontend
 
 The frontend is built with React and Vite, using Tailwind CSS for styling. It provides a modern, responsive interface for users to discover projects, manage their profiles, and collaborate.
 
@@ -46,6 +46,36 @@ The frontend is built with React and Vite, using Tailwind CSS for styling. It pr
 
 ## Setup
 
+### Local Development
+
 1. Ensure Node.js is installed.
 2. Install dependencies: `npm install`
-3. Run the development server: `npm run dev`
+3. Create `.env` file with `VITE_API_URL=http://localhost:8000`
+4. Run the development server: `npm run dev`
+
+### Vercel Deployment
+
+The frontend is configured for Vercel static site deployment with SPA routing:
+
+1. **Environment Variables**: Set `VITE_API_URL` to your backend URL
+2. **Build**: Vite builds to `dist/` directory
+3. **Routing**: `vercel.json` configures SPA rewrites for client-side routing
+
+**Deploy:**
+```bash
+cd frontend
+vercel
+```
+
+**Configuration:**
+- Copy `.env.example` to `.env`
+- Set `VITE_API_URL` to your Vercel backend URL
+- Ensure all API calls use `import.meta.env.VITE_API_URL`
+
+**Build locally to test:**
+```bash
+npm run build
+npm run preview
+```
+
+See [VERCEL_DEPLOYMENT.md](../VERCEL_DEPLOYMENT.md) for complete instructions.

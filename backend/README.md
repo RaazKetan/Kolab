@@ -1,6 +1,6 @@
-# CollabFoundry Backend
+# Origin Backend
 
-This directory contains the FastAPI backend for the CollabFoundry application. It handles user authentication, project management, profile analysis, and integration with Generative AI agents.
+This directory contains the FastAPI backend for the Origin application. It handles user authentication, project management, profile analysis, and integration with Generative AI agents.
 
 ## Directory Structure
 
@@ -43,7 +43,31 @@ This directory contains the FastAPI backend for the CollabFoundry application. I
 
 ## Setup
 
+### Local Development
+
 1. Ensure Python 3.9+ is installed.
 2. Install dependencies: `pip install -r requirements.txt`
-3. Set environment variables (GEMINI_API_KEY, GITHUB_TOKEN, etc.).
+3. Set environment variables (GEMINI_API_KEY, GOOGLE_API_KEY, DATABASE_URL, SECRET_KEY).
 4. Run the server: `uvicorn app.main:app --reload`
+
+### Vercel Deployment
+
+The backend is configured for Vercel serverless deployment:
+
+1. **Database**: Use PostgreSQL (Vercel Postgres, Supabase, or Neon) - SQLite won't work on serverless
+2. **Entry Point**: `api/index.py` exports the FastAPI app for Vercel
+3. **Configuration**: `vercel.json` defines build and routing settings
+
+**Deploy:**
+```bash
+cd backend
+vercel
+```
+
+**Important Considerations:**
+- Serverless functions have execution time limits (10s free tier, 60s pro)
+- Database connections should use connection pooling
+- File system is read-only except `/tmp`
+- Environment variables must be set in Vercel dashboard
+
+See [VERCEL_DEPLOYMENT.md](../VERCEL_DEPLOYMENT.md) for complete instructions.

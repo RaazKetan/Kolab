@@ -6,7 +6,7 @@ Create a `.env` file in the `backend/` directory with the following variables:
 
 ```bash
 # Database Configuration
-DATABASE_URL=sqlite:///./collabfoundry.db
+DATABASE_URL=sqlite:///./origin.db
 
 # Gemini AI API Key (get from https://makersuite.google.com/app/apikey)
 GEMINI_API_KEY=your-gemini-api-key-here
@@ -33,7 +33,7 @@ Create a `.env` file in the `frontend/` directory with the following variables:
 VITE_API_BASE_URL=http://localhost:8000
 
 # App Name
-VITE_APP_NAME=CollabFoundry
+VITE_APP_NAME=Origin
 
 # Environment
 VITE_NODE_ENV=development
@@ -50,9 +50,9 @@ VITE_NODE_ENV=development
 **Note**: The app works without this key, but AI features will be limited.
 
 ### 2. Database URL
-- **SQLite** (default): `sqlite:///./collabfoundry.db`
-- **PostgreSQL**: `postgresql://username:password@localhost/collabfoundry`
-- **MySQL**: `mysql://username:password@localhost/collabfoundry`
+- **SQLite** (default): `sqlite:///./origin.db`
+- **PostgreSQL**: `postgresql://username:password@localhost/origin`
+- **MySQL**: `mysql://username:password@localhost/origin`
 
 ### 3. JWT Secret Key
 Generate a secure random string:

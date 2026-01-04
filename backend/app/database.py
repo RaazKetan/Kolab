@@ -17,7 +17,7 @@ if DATABASE_TYPE == "postgresql":
 else:
     # Development: Use SQLite
     print("Using SQLite database")
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./collabfoundry.db")
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./origin.db")
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}

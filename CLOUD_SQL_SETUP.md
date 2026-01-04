@@ -1,6 +1,6 @@
 # Cloud SQL Setup Guide
 
-This guide walks you through setting up Cloud SQL PostgreSQL for CollabFoundry.
+This guide walks you through setting up Cloud SQL PostgreSQL for Origin.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ export PROJECT_ID="your-project-id"
 gcloud config set project $PROJECT_ID
 
 # Create PostgreSQL instance (db-f1-micro for development, ~$7-10/month)
-gcloud sql instances create collabfoundry-db \
+gcloud sql instances create origin-db \
   --database-version=POSTGRES_15 \
   --tier=db-f1-micro \
   --region=us-central1 \
@@ -30,12 +30,12 @@ gcloud sql instances list
 
 ```bash
 # Create the database
-gcloud sql databases create collabfoundry \
-  --instance=collabfoundry-db
+gcloud sql databases create origin \
+  --instance=origin-db
 
 # Create application user
-gcloud sql users create collabfoundry_user \
-  --instance=collabfoundry-db \
+gcloud sql users create origin_user \
+  --instance=origin-db \
   --password="CHANGE_THIS_USER_PASSWORD"
 ```
 
@@ -43,10 +43,10 @@ gcloud sql users create collabfoundry_user \
 
 ```bash
 # Get the connection name (format: project:region:instance)
-gcloud sql instances describe collabfoundry-db \
+gcloud sql instances describe origin-db \
   --format="value(connectionName)"
 
-# Example output: your-project:us-central1:collabfoundry-db
+# Example output: your-project:us-central1:origin-db
 # Save this for deployment configuration
 ```
 
@@ -87,10 +87,10 @@ curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/clou
 chmod +x cloud-sql-proxy
 
 # Start proxy
-./cloud-sql-proxy your-project:us-central1:collabfoundry-db
+./cloud-sql-proxy your-project:us-central1:origin-db
 
 # In another terminal, test connection
-psql "host=127.0.0.1 port=5432 dbname=collabfoundry user=collabfoundry_user"
+psql "host=127.0.0.1 port=5432 dbname=origin user=origin_user"
 ```
 
 ## Step 6: Update Deployment Configuration
@@ -101,9 +101,9 @@ Update `cloudbuild.yaml` substitutions:
 
 ```yaml
 substitutions:
-  _CLOUD_SQL_CONNECTION_NAME: 'your-project:us-central1:collabfoundry-db'
-  _DB_USER: 'collabfoundry_user'
-  _DB_NAME: 'collabfoundry'
+  _CLOUD_SQL_CONNECTION_NAME: 'your-project:us-central1:origin-db'
+  _DB_USER: 'origin_user'
+  _DB_NAME: 'origin'
   _GEMINI_API_KEY: 'your-gemini-api-key'
   _GOOGLE_API_KEY: 'your-google-api-key'
   _SECRET_KEY: 'your-jwt-secret-key'
@@ -130,7 +130,7 @@ And update environment variables to reference secrets:
 ```bash
 # Deploy using Cloud Build
 gcloud builds submit --config=cloudbuild.yaml \
-  --substitutions=_CLOUD_SQL_CONNECTION_NAME="your-project:us-central1:collabfoundry-db",_DB_USER="collabfoundry_user",_DB_NAME="collabfoundry",_GEMINI_API_KEY="your-key",_GOOGLE_API_KEY="your-key",_SECRET_KEY="your-secret"
+  --substitutions=_CLOUD_SQL_CONNECTION_NAME="your-project:us-central1:origin-db",_DB_USER="origin_user",_DB_NAME="origin",_GEMINI_API_KEY="your-key",_GOOGLE_API_KEY="your-key",_SECRET_KEY="your-secret"
 ```
 
 Or use the deploy script:
@@ -162,7 +162,7 @@ Look for: `Using PostgreSQL (Cloud SQL) database` in the logs.
 
 ```bash
 # Check Cloud SQL instance status
-gcloud sql instances describe collabfoundry-db
+gcloud sql instances describe origin-db
 
 # Check Cloud Run service configuration
 gcloud run services describe conekt-backend --region=us-central1
@@ -179,11 +179,11 @@ gcloud run services logs read conekt-backend --region=us-central1 --limit=50
    - Check that database user and password are correct
 
 2. **"Database does not exist"**
-   - Verify database was created: `gcloud sql databases list --instance=collabfoundry-db`
+   - Verify database was created: `gcloud sql databases list --instance=origin-db`
    - Check `DB_NAME` environment variable
 
 3. **"Permission denied"**
-   - Verify user exists: `gcloud sql users list --instance=collabfoundry-db`
+   - Verify user exists: `gcloud sql users list --instance=origin-db`
    - Check password is correct
    - Ensure user has permissions on database
 
@@ -203,14 +203,14 @@ gcloud run services logs read conekt-backend --region=us-central1 --limit=50
 
 ```bash
 # Create on-demand backup
-gcloud sql backups create --instance=collabfoundry-db
+gcloud sql backups create --instance=origin-db
 
 # List backups
-gcloud sql backups list --instance=collabfoundry-db
+gcloud sql backups list --instance=origin-db
 
 # Restore from backup
 gcloud sql backups restore BACKUP_ID \
-  --backup-instance=collabfoundry-db \
+  --backup-instance=origin-db \
   --backup-id=BACKUP_ID
 ```
 

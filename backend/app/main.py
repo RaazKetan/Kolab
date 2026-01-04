@@ -4,7 +4,7 @@ from .database import Base, engine
 from .routers import users, projects, ai, auth, matching, profile, repo_projects, chat, requirements, analyze_repo, talent, skill_gap
 
 Base.metadata.create_all(bind=engine)
-app = FastAPI(title="CollabFoundry API")
+app = FastAPI(title="Origin API")
 
 # CORS middleware for frontend
 app.add_middleware(

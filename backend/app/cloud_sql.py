@@ -22,7 +22,7 @@ def get_cloud_sql_engine():
             "pg8000",
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
-            db=os.getenv("DB_NAME", "collabfoundry")
+            db=os.getenv("DB_NAME", "origin")
         )
         return conn
     
