@@ -1,6 +1,6 @@
-# CollabFoundry Backend
+# Origin Backend
 
-This directory contains the FastAPI backend for the CollabFoundry application. It handles user authentication, project management, profile analysis, and integration with Generative AI agents.
+This directory contains the FastAPI backend for the Origin application. It handles user authentication, project management, profile analysis, and integration with Generative AI agents.
 
 ## Directory Structure
 

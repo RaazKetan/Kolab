@@ -1,4 +1,4 @@
-# CollabFoundry Frontend
+# Origin Frontend
 
 The frontend is built with React and Vite, using Tailwind CSS for styling. It provides a modern, responsive interface for users to discover projects, manage their profiles, and collaborate.
 

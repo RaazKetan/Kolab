@@ -1,10 +1,10 @@
-# CollabFoundry - AI-Powered Talent & Project Collaboration Platform
+# Origin - AI-Powered Talent & Project Collaboration Platform
 
 A comprehensive platform for connecting professionals and organizations through intelligent project matching, AI-powered talent sourcing, and skill gap analysis.
 
 ## Overview
 
-CollabFoundry is an enterprise-grade collaboration platform that leverages artificial intelligence to facilitate meaningful connections between talent and opportunities. The platform features intelligent matching algorithms, natural language search capabilities, and automated skill assessment tools.
+Origin is an enterprise-grade collaboration platform that leverages artificial intelligence to facilitate meaningful connections between talent and opportunities. The platform features intelligent matching algorithms, natural language search capabilities, and automated skill assessment tools.
 
 ## Core Features
 
@@ -76,7 +76,7 @@ pip install -r requirements.txt
 
 Create a `.env` file:
 ```bash
-DATABASE_URL=sqlite:///./collabfoundry.db
+DATABASE_URL=sqlite:///./origin.db
 GEMINI_API_KEY=your_api_key_here
 GOOGLE_API_KEY=your_api_key_here
 ```

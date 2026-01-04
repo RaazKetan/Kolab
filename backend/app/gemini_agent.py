@@ -6,7 +6,7 @@ load_dotenv()
 genai.configure(api_key=(os.getenv("GEMINI_API_KEY") or "").strip())
 
 SYSTEM_PROMPT = """
-You are the autonomous reasoning and data-processing layer of "CollabFoundry".
+You are the autonomous reasoning and data-processing layer of "Origin".
 Follow the structured schemas based on the input `task`.
 Output JSON only, no explanations.
 
