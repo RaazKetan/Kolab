@@ -6,6 +6,9 @@ import os
 import sys
 import subprocess
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
+
 
 if __name__ == "__main__":
     # Get the backend directory

@@ -64,88 +64,81 @@ def calculate_match_score(user: models.User, project: models.Project) -> tuple[f
         match_strength = "weak"
     
     return score, match_strength
-
 @router.get("/discover", response_model=schemas.ProjectResponse)
 def get_next_project(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    # First, try to get projects that haven't been swiped yet
-    swiped_ids = db.query(models.Swipe.project_id).filter(
-        models.Swipe.user_id == current_user.id
-    ).subquery()
-
-    new_candidates = db.query(models.Project).filter(
-        and_(
+    # -------- NEW PROJECTS (never swiped) --------
+    new_candidates = (
+        db.query(models.Project)
+        .filter(
             models.Project.owner_id != current_user.id,
             models.Project.is_active == True,
-            ~models.Project.id.in_(swiped_ids)
+            ~db.query(models.Swipe)
+            .filter(
+                models.Swipe.user_id == current_user.id,
+                models.Swipe.project_id == models.Project.id
+            )
+            .exists()
         )
-    ).all()
+        .all()
+    )
 
     if new_candidates:
-        # Calculate match scores for all candidates
-        scored_projects = []
+        scored = []
         for project in new_candidates:
-            score, match_strength = calculate_match_score(current_user, project)
-            scored_projects.append((project, score, match_strength))
-        
-        # Sort by score (highest first)
-        scored_projects.sort(key=lambda x: x[1], reverse=True)
-        
-        # Select the top project
-        selected_project, score, match_strength = scored_projects[0]
-        
-        # Add match metadata to the project
-        selected_project.is_reshow = False
-        selected_project.match_score = score
-        selected_project.match_strength = match_strength
-        
-        return selected_project
-    
-    # If no new projects, get projects that were passed (not liked) - exclude liked projects
-    liked_project_ids = db.query(models.Swipe.project_id).filter(
-        and_(
-            models.Swipe.user_id == current_user.id,
-            models.Swipe.is_like == True
-        )
-    ).subquery()
+            score, strength = calculate_match_score(current_user, project)
+            scored.append((project, score, strength))
 
-    passed_project_ids = db.query(models.Swipe.project_id).filter(
-        and_(
-            models.Swipe.user_id == current_user.id,
-            models.Swipe.is_like == False
-        )
-    ).subquery()
+        scored.sort(key=lambda x: (x[1], -x[0].id), reverse=True)
+        project, score, strength = scored[0]
 
-    passed_candidates = db.query(models.Project).filter(
-        and_(
+        project.is_reshow = False
+        project.match_score = score
+        project.match_strength = strength
+        return project
+
+    # -------- PASSED PROJECTS (reshow only if NOT liked) --------
+    passed_candidates = (
+        db.query(models.Project)
+        .filter(
             models.Project.owner_id != current_user.id,
             models.Project.is_active == True,
-            models.Project.id.in_(passed_project_ids),
-            ~models.Project.id.in_(liked_project_ids)  # Exclude liked projects
+            db.query(models.Swipe)
+            .filter(
+                models.Swipe.user_id == current_user.id,
+                models.Swipe.project_id == models.Project.id,
+                models.Swipe.is_like == False,
+            )
+            .exists(),
+            ~db.query(models.Swipe)
+            .filter(
+                models.Swipe.user_id == current_user.id,
+                models.Swipe.project_id == models.Project.id,
+                models.Swipe.is_like == True,
+            )
+            .exists(),
         )
-    ).all()
+        .all()
+    )
 
     if passed_candidates:
-        # Also score passed projects
-        scored_projects = []
+        scored = []
         for project in passed_candidates:
-            score, match_strength = calculate_match_score(current_user, project)
-            scored_projects.append((project, score, match_strength))
-        
-        scored_projects.sort(key=lambda x: x[1], reverse=True)
-        selected_project, score, match_strength = scored_projects[0]
-        
-        # Add metadata
-        selected_project.is_reshow = True
-        selected_project.match_score = score
-        selected_project.match_strength = match_strength
-        
-        return selected_project
-    
-    # If no projects at all (including passed ones)
+            score, strength = calculate_match_score(current_user, project)
+            scored.append((project, score, strength))
+
+        scored.sort(key=lambda x: (x[1], -x[0].id), reverse=True)
+        project, score, strength = scored[0]
+
+        project.is_reshow = True
+        project.match_score = score
+        project.match_strength = strength
+        return project
+
     raise HTTPException(status_code=404, detail="No more projects to discover")
+
 
 @router.post("/swipe", response_model=schemas.SwipeResponse)
 def swipe_project(

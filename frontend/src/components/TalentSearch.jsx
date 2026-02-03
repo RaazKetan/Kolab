@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { Search, MapPin, Briefcase, Award, Zap, User, Mail, Phone, Loader2, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
 import { SkillGapAnalysis } from './SkillGapAnalysis';
 
-export const TalentSearch = ({ onBack }) => {
+export const TalentSearch = ({ onBack, isDarkMode = true }) => {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [candidates, setCandidates] = useState([]);
@@ -46,232 +47,185 @@ export const TalentSearch = ({ onBack }) => {
     }
   };
 
+  const inputClass = `w-full px-6 py-4 rounded-2xl border text-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all resize-none shadow-xl ${
+    isDarkMode 
+      ? 'bg-zinc-900/80 border-white/10 text-white placeholder-zinc-500 focus:border-purple-500/30' 
+      : 'bg-white border-gray-200 text-gray-800 shadow-gray-200/50'
+  }`;
+
+  const cardClass = `group relative rounded-3xl border p-6 transition-all hover:-translate-y-1 duration-300 ${
+    isDarkMode 
+      ? 'bg-[#18181b]/60 border-white/5 hover:bg-[#18181b]/80 hover:border-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/10' 
+      : 'bg-white border-gray-100 hover:border-purple-200 hover:shadow-xl'
+  }`;
+
   return (
-    <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 mt-6 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-700 px-8 py-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">🔍 AI-Powered Talent Search</h2>
-            <p className="text-purple-100">Find the perfect candidates using natural language</p>
-          </div>
-          <button
-            onClick={onBack}
-            className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors"
-          >
-            ← Back
-          </button>
+    <div className={`w-full max-w-7xl mx-auto pb-20 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+      {/* Header & Search Area */}
+      <div className="text-center py-12 px-4 relative">
+        <button
+          onClick={onBack}
+          className={`absolute left-0 top-8 px-4 py-2 rounded-xl transition-colors backdrop-blur-md flex items-center gap-2 text-sm font-medium ${
+            isDarkMode 
+              ? 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/5' 
+              : 'bg-white/50 hover:bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
+          }`}
+        >
+          <ArrowRight className="w-4 h-4 rotate-180" /> Back
+        </button>
+
+        <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
+          Find your dream <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Talent</span>
+        </h1>
+        <p className={`text-lg md:text-xl max-w-2xl mx-auto mb-12 font-light ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+           Describe the skills and role you need. Our AI agent will scour the database to find the perfect match.
+        </p>
+
+        <div className="max-w-3xl mx-auto relative group">
+           <div className={`absolute -inset-1 rounded-3xl opacity-20 blur-xl transition duration-500 group-hover:opacity-40 ${
+              isDarkMode ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'bg-gradient-to-r from-purple-400 to-pink-400'
+           }`}></div>
+           <div className="relative">
+              <textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                   if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSearch();
+                   }
+                }}
+                placeholder="Ex: Senior React Developer with 5 years experience, knows Python and AWS..."
+                className={`${inputClass} min-h-[140px]`}
+              />
+              <div className="absolute bottom-4 right-4">
+                 <button
+                    onClick={handleSearch}
+                    disabled={searching || !query.trim()}
+                    className={`px-6 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
+                       searching || !query.trim()
+                          ? 'bg-zinc-500/20 text-zinc-500 cursor-not-allowed'
+                          : 'bg-white text-black hover:scale-105 active:scale-95 shadow-lg'
+                    }`}
+                 >
+                    {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 text-purple-600" />}
+                    {searching ? 'Scouting...' : 'Find Talent'}
+                 </button>
+              </div>
+           </div>
         </div>
+        {error && <p className="mt-4 text-red-400 bg-red-400/10 inline-block px-4 py-2 rounded-lg text-sm">{error}</p>}
       </div>
 
-      {/* Content */}
-      <div className="p-8">
-        {/* Search Section */}
-        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-8 mb-8 border border-purple-100">
-          <h3 className="text-2xl font-semibold text-gray-900 mb-3 flex items-center">
-            <span className="text-3xl mr-3">💼</span>
-            Describe Your Ideal Candidate
-          </h3>
-          <p className="text-gray-600 mb-6 text-sm">
-            Use natural language to describe the skills, experience, and qualifications you're looking for.
-            Our AI will find the best matching candidates from our talent pool.
-          </p>
-
-          <div className="space-y-4">
-            <textarea
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Example: I need a senior full-stack engineer with React and Node.js experience, preferably with cloud deployment skills and 5+ years of experience..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              rows={5}
-              disabled={searching}
-            />
-
-            {error && (
-              <p className="text-red-600 text-sm">{error}</p>
-            )}
-
-            <button
-              onClick={handleSearch}
-              disabled={searching || !query.trim()}
-              className={`w-full px-8 py-4 rounded-xl font-semibold transition-all text-white text-lg ${
-                searching || !query.trim()
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl active:scale-95'
-              }`}
-            >
-              {searching ? (
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Searching Candidates...
-                </div>
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <span>🔍</span>
-                  Search Candidates
-                </div>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Results Section */}
-        {candidates.length > 0 && (
-          <div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
-              <span className="text-3xl mr-3">👥</span>
-              Top Matches ({candidates.length})
-            </h3>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {candidates.map((candidate) => (
-                <div
-                  key={candidate.id}
-                  className="bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all p-6"
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h4 className="text-xl font-bold text-gray-900">{candidate.name}</h4>
-                      <p className="text-purple-600 font-semibold">{candidate.title}</p>
-                      {candidate.location && (
-                        <p className="text-sm text-gray-500 flex items-center mt-1">
-                          <span className="mr-1">📍</span>
-                          {candidate.location}
-                        </p>
-                      )}
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg px-3 py-2 border border-purple-200">
-                      <div className="text-xs text-purple-700 font-medium">Match Score</div>
-                      <div className="text-2xl font-bold text-purple-800">
-                        {Math.round(candidate.match_score * 100)}%
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Experience */}
-                  <div className="mb-4">
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span className="flex items-center">
-                        <span className="mr-1">⏱️</span>
-                        {candidate.experience_years} years experience
-                      </span>
-                      {candidate.current_company && (
-                        <span className="flex items-center">
-                          <span className="mr-1">🏢</span>
-                          {candidate.current_company}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Summary */}
-                  <p className="text-gray-700 text-sm mb-4 line-clamp-3">
-                    {candidate.summary}
-                  </p>
-
-                  {/* Skills */}
-                  {candidate.skills && candidate.skills.length > 0 && (
-                    <div className="mb-4">
-                      <h5 className="text-xs font-semibold text-gray-600 mb-2">TOP SKILLS</h5>
-                      <div className="flex flex-wrap gap-2">
-                        {candidate.skills.slice(0, 8).map((skill, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                        {candidate.skills.length > 8 && (
-                          <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                            +{candidate.skills.length - 8} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Certifications */}
-                  {candidate.certifications && candidate.certifications.length > 0 && (
-                    <div className="mb-4">
-                      <h5 className="text-xs font-semibold text-gray-600 mb-2">CERTIFICATIONS</h5>
-                      <div className="flex flex-wrap gap-2">
-                        {candidate.certifications.map((cert, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-200"
-                          >
-                            🏆 {cert}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Work History Preview */}
-                  {candidate.work_history && candidate.work_history.length > 0 && (
-                    <div className="border-t border-gray-200 pt-4">
-                      <h5 className="text-xs font-semibold text-gray-600 mb-2">RECENT EXPERIENCE</h5>
-                      <div className="space-y-2">
-                        {candidate.work_history.slice(0, 2).map((job, idx) => (
-                          <div key={idx} className="text-sm">
-                            <div className="font-semibold text-gray-800">{job.role}</div>
-                            <div className="text-gray-600 text-xs">
-                              {job.company} • {job.duration}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Contact */}
-                  <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <span>📧</span>
-                        <a href={`mailto:${candidate.email}`} className="text-purple-600 hover:underline">
-                          {candidate.email}
-                        </a>
-                      </div>
-                      {candidate.phone && (
-                        <div className="flex items-center gap-2 mt-1">
-                          <span>📱</span>
-                          <span>{candidate.phone}</span>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => setSelectedCandidate(candidate)}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium text-sm"
-                    >
-                      📊 Analyze Skills
-                    </button>
-                  </div>
-                </div>
-              ))}
+      {/* Results Grid */}
+      {candidates.length > 0 && (
+         <div className="px-4">
+            <div className="flex items-center justify-between mb-8 max-w-3xl mx-auto">
+               <h3 className={`text-xl font-semibold flex items-center gap-2 ${isDarkMode ? 'text-zinc-200' : 'text-gray-800'}`}>
+                  <Sparkles className="w-5 h-5 text-purple-500" />
+                  Top Matches Found
+               </h3>
+               <span className={`text-sm px-3 py-1 rounded-full ${isDarkMode ? 'bg-white/5 text-zinc-400' : 'bg-gray-100 text-gray-600'}`}>
+                  {candidates.length} candidates
+               </span>
             </div>
-          </div>
-        )}
 
-        {/* Empty State */}
-        {!searching && candidates.length === 0 && !error && (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">🎯</div>
-            <h3 className="text-2xl font-semibold text-gray-800 mb-2">Ready to Find Talent</h3>
-            <p className="text-gray-600">
-              Describe your ideal candidate above and let our AI find the best matches
-            </p>
-          </div>
-        )}
-      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {candidates.map((candidate, index) => (
+                  <div key={candidate.id} className={cardClass} style={{ animationDelay: `${index * 100}ms` }}>
+                     {/* Match Badge */}
+                     <div className="absolute top-4 right-4">
+                        <div className={`px-3 py-1 rounded-full text-sm font-bold shadow-lg border backdrop-blur-md ${
+                           candidate.match_score >= 0.8 
+                              ? 'bg-green-500/20 border-green-500/30 text-green-400' 
+                              : 'bg-blue-500/20 border-blue-500/30 text-blue-400'
+                        }`}>
+                           {Math.round(candidate.match_score * 100)}% Match
+                        </div>
+                     </div>
+
+                     <div className="flex flex-col h-full">
+                        {/* Profile Header */}
+                        <div className="mb-6">
+                           <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold mb-4 ${
+                              isDarkMode ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-200 border border-white/5' : 'bg-purple-50 text-purple-600'
+                           }`}>
+                              {candidate.name.charAt(0)}
+                           </div>
+                           <h4 className="text-xl font-bold mb-1 truncate">{candidate.name}</h4>
+                           <p className="text-purple-500 font-medium text-sm truncate">{candidate.title}</p>
+                           {candidate.location && (
+                              <p className={`text-xs flex items-center mt-2 ${isDarkMode ? 'text-zinc-500' : 'text-gray-500'}`}>
+                                 <MapPin className="w-3 h-3 mr-1" /> {candidate.location}
+                              </p>
+                           )}
+                        </div>
+
+                        {/* Summary */}
+                        <p className={`text-sm line-clamp-3 mb-6 flex-grow ${isDarkMode ? 'text-zinc-400' : 'text-gray-600'}`}>
+                           {candidate.summary}
+                        </p>
+
+                        {/* Stats Row */}
+                        <div className={`flex items-center gap-4 py-4 mb-4 border-t border-b ${isDarkMode ? 'border-white/5' : 'border-gray-100'}`}>
+                           <div>
+                              <p className={`text-[10px] uppercase tracking-wider font-semibold ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>Experience</p>
+                              <p className={`text-sm font-medium ${isDarkMode ? 'text-zinc-200' : 'text-gray-700'}`}>{candidate.experience_years} Years</p>
+                           </div>
+                           {candidate.current_company && (
+                              <div className="flex-1 truncate">
+                                 <p className={`text-[10px] uppercase tracking-wider font-semibold ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>Current</p>
+                                 <p className={`text-sm font-medium truncate ${isDarkMode ? 'text-zinc-200' : 'text-gray-700'}`}>{candidate.current_company}</p>
+                              </div>
+                           )}
+                        </div>
+
+                        {/* Skills */}
+                        <div className="flex flex-wrap gap-1.5 mb-6">
+                           {candidate.skills?.slice(0, 5).map((skill, i) => (
+                              <span key={i} className={`px-2 py-1 text-[10px] font-medium rounded-md border ${
+                                 isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-gray-50 border-gray-200 text-gray-600'
+                              }`}>
+                                 {skill}
+                              </span>
+                           ))}
+                           {(candidate.skills?.length || 0) > 5 && (
+                              <span className={`px-2 py-1 text-[10px] font-medium rounded-md border ${
+                                 isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-500' : 'bg-gray-50 border-gray-200 text-gray-400'
+                              }`}>+{candidate.skills.length - 5}</span>
+                           )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="mt-auto grid grid-cols-2 gap-3">
+                           <a 
+                              href={`mailto:${candidate.email}`}
+                              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                                 isDarkMode ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                              }`}
+                           >
+                              <Mail className="w-4 h-4" /> Contact
+                           </a>
+                           <button
+                              onClick={() => setSelectedCandidate(candidate)}
+                              className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-white text-black hover:bg-zinc-200 transition-colors shadow-lg shadow-white/5"
+                           >
+                              <Zap className="w-4 h-4 text-purple-600" /> Analyze
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
+         </div>
+      )}
 
       {/* Skill Gap Analysis Modal */}
       {selectedCandidate && (
         <SkillGapAnalysis
           candidate={selectedCandidate}
           onClose={() => setSelectedCandidate(null)}
+          isDarkMode={isDarkMode}
         />
       )}
     </div>

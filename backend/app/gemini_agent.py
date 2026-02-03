@@ -1,6 +1,11 @@
 import os, json
 import google.generativeai as genai
 from dotenv import load_dotenv
+from .agents import create_github_agent
+from google.adk import Runner
+from google.adk.sessions import InMemorySessionService
+from types import SimpleNamespace
+import uuid
 
 load_dotenv()
 genai.configure(api_key=(os.getenv("GEMINI_API_KEY") or "").strip())
@@ -109,12 +114,6 @@ def analyze_repo(readme_text: str, files: list):
         [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
     )
     return _parse_json_from_response(resp)
-
-from .agents import create_github_agent
-from google.adk import Runner
-from google.adk.sessions import InMemorySessionService
-from types import SimpleNamespace
-import uuid
 
 async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list = None):
     # Ensure GOOGLE_API_KEY is set for ADK
@@ -261,16 +260,34 @@ def analyze_user_repos(username: str, repos_meta: list):
 
 def embed_text(text: str) -> list:
     try:
-        resp = genai.embed_content(
-            model="models/text-embedding-004",
-            content=text or ""
+        # Use the correct Gemini embedding model
+        # Model: models/text-embedding-004 is the latest embedding model from Google
+        # task_type can be: RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY, CLASSIFICATION, CLUSTERING
+        result = genai.embed_content(
+            model="gemini-embedding-001",
+            content=text or "",
+            task_type="RETRIEVAL_DOCUMENT"  # for indexing documents in a database
         )
-        emb = resp.get("embedding", resp)
-        if isinstance(emb, dict) and "values" in emb:
-            return emb["values"]
-        return emb if isinstance(emb, list) else []
+        
+        # Extract embedding from the result
+        if hasattr(result, 'embedding'):
+            return result['embedding']
+        elif isinstance(result, dict):
+            if 'embedding' in result:
+                emb = result['embedding']
+                # Handle both direct list and nested values
+                if isinstance(emb, list):
+                    return emb
+                elif isinstance(emb, dict) and 'values' in emb:
+                    return emb['values']
+        
+        print(f"Unexpected embedding response format: {type(result)}")
+        return []
+        
     except Exception as e:
         print(f"Gemini embedding failed: {e}")
+        import traceback
+        traceback.print_exc()
         # Fallback to simple keyword-based embedding
         words = (text or "").lower().split()
         vocab = ["python","javascript","react","fastapi","ml","ai","mobile","blockchain","data","web","frontend","backend","database","api","ui","ux","design","development","programming","coding"]

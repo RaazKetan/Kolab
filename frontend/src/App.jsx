@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import { AuthForm } from './components/Authform';
 import { Header } from './components/Header';
-import { Navigation } from './components/Navigation';
+import { SideNav, BottomNav } from './components/Navigation';
 import { ProjectCard } from './components/ProjectCard';
 import { MatchCard } from './components/MatchCard';
 import { ChatView } from './components/ChatView';
@@ -15,6 +16,7 @@ import { ProfileEdit } from './components/ProfileEdit';
 import { ProjectLikes } from './components/ProjectLikes';
 import { LandingPage } from './components/LandingPage';
 import { TalentSearch } from './components/TalentSearch';
+import { Discover } from './components/Discover';
 const API_BASE = "http://localhost:8000";
 
 export function App() {
@@ -52,34 +54,64 @@ export function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSwiping, setIsSwiping] = useState(false);
   const [isDiscoverLoading, setIsDiscoverLoading] = useState(false);
+  const [discoverProjects, setDiscoverProjects] = useState([]);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const isLoadingRef = useRef(false);
   const isLoadingNotificationsRef = useRef(false);
 
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
-  const fetchNextProject = useCallback(async () => {
+  const toggleTheme = () => {
+    setIsDarkMode(prev => !prev);
+  };
+
+
+  const fetchNextProject = useCallback(async (excludeId = null) => {
     const token = localStorage.getItem("token");
     if (!token || isLoadingRef.current) return; // Prevent multiple simultaneous calls
     
     isLoadingRef.current = true;
+    setIsDiscoverLoading(true);
     
     try {
-      const res = await fetch(`${API_BASE}/matching/discover`, {
+      let url = `${API_BASE}/matching/discover`;
+      if (excludeId) {
+        url += `?exclude_project_id=${excludeId}`;
+      }
+      
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setCurrentProject(data);
-        setIsShowingReshown(data.is_reshow || false);
-        try {
-          if (data && typeof data.owner_id === "number") {
-            const u = await fetch(`${API_BASE}/users/${data.owner_id}`);
-            if (u.ok) setOwnerUser(await u.json()); else setOwnerUser(null);
-          } else {
-            setOwnerUser(null);
-          }
-        } catch (error) { 
-          console.error("Error fetching owner user:", error);
-          setOwnerUser(null); 
+        console.log('fetchNextProject: Setting new project:', data);
+        
+        // Loop protection: If backend still returns the same project, force null
+        if (excludeId && data.id === excludeId) {
+           console.warn("Backend returned excluded project ID. Breaking loop.");
+           setCurrentProject(null);
+           setIsShowingReshown(false);
+        } else {
+           setCurrentProject(data);
+           setIsShowingReshown(data.is_reshow || false);
+           try {
+             if (data && typeof data.owner_id === "number") {
+               const u = await fetch(`${API_BASE}/users/${data.owner_id}`);
+               if (u.ok) setOwnerUser(await u.json()); else setOwnerUser(null);
+             } else {
+               setOwnerUser(null);
+             }
+           } catch (error) { 
+             console.error("Error fetching owner user:", error);
+             setOwnerUser(null); 
+           }
         }
       } else if (res.status === 404) {
         setCurrentProject(null);
@@ -91,6 +123,7 @@ export function App() {
       console.error(e);
     } finally {
       isLoadingRef.current = false;
+      setIsDiscoverLoading(false);
     }
   }, []); // No dependencies - use ref for loading state
 
@@ -433,8 +466,10 @@ export function App() {
     // The ProjectLikes component will handle its own data fetching
   }, []); // No dependencies since it only uses token from localStorage
 
-  const handleSwipe = async (isLike) => {
-    if (!currentProject || currentProject.id == null) {
+  const handleSwipe = async (isLike, projectId = null) => {
+    const targetId = projectId || (currentProject && currentProject.id);
+    
+    if (!targetId) {
       console.log("No current project to swipe on");
       return;
     }
@@ -444,7 +479,7 @@ export function App() {
       return;
     }
     
-    console.log(`Swiping ${isLike ? 'like' : 'pass'} on project ${currentProject.id}`);
+    console.log(`Swiping ${isLike ? 'like' : 'pass'} on project ${targetId}`);
     setIsSwiping(true);
     
     const token = localStorage.getItem("token");
@@ -463,7 +498,7 @@ export function App() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          project_id: Number(currentProject.id),
+          project_id: Number(targetId),
           is_like: Boolean(isLike),
         }),
       });
@@ -477,7 +512,8 @@ export function App() {
         if (errorData.detail === "Already swiped on this project") {
           // If already swiped, just move to next project
           console.log("Project already swiped, moving to next...");
-          await fetchNextProject();
+          // Pass excludeId to force backend to give us a different project
+          await fetchNextProject(targetId);
           return;
         }
         console.error("swipe error:", errorData);
@@ -497,7 +533,8 @@ export function App() {
       
       // Move to next project after successful swipe
       console.log("Moving to next project after successful swipe...");
-      await fetchNextProject();
+      // Pass excludeId to prevent Reshow of the same project
+      await fetchNextProject(targetId);
       console.log("Next project fetched, current project:", currentProject);
     } catch (error) {
       console.error("Swipe request failed:", error);
@@ -612,170 +649,70 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header 
-        currentUser={currentUser} 
-        onLogout={handleLogout} 
-        setView={setView} 
-      />
-
-      <Navigation 
-        view={view} 
-        setView={setView} 
-        matchesCount={matches.length}
-        notificationsCount={notifications.length}
+    <div className={`min-h-screen font-sans flex ${isDarkMode ? 'bg-[#0a0a0a] text-slate-50' : 'bg-gray-50 text-gray-900'}`}>
+      <SideNav 
+        currentView={view} 
+        setView={(newView) => {
+          setView(newView);
+          // Handle view-specific logic
+          if (newView === 'discover') {
+            setIsDiscoverLoading(true);
+            setTimeout(() => {
+              fetchNextProject();
+              setIsDiscoverLoading(false);
+            }, 2000);
+          } else if (newView === 'matches') {
+            fetchMatches();
+          } else if (newView === 'postProject' || newView === 'myProjects') {
+            fetchMyProjects();
+          } else if (newView === 'projectLikes') {
+            fetchProjectLikes();
+          }
+        }}
         currentUser={currentUser}
-        onProfileEdit={() => setView("profileEdit")}
-        onDiscover={() => {
-          setView("discover");
-          setIsDiscoverLoading(true);
-          // Show loading screen for 2 seconds before fetching
-          setTimeout(() => {
-            fetchNextProject();
-            setIsDiscoverLoading(false);
-          }, 2000);
-        }}
-        onMatches={() => {
-          setView("matches");
-          fetchMatches();
-        }}
-        onPostProject={() => {
-          setView("postProject");
-          fetchMyProjects();
-        }}
-        onMyProjects={() => {
-          setView("myProjects");
-          fetchMyProjects();
-        }}
-        onProjectLikes={() => {
-          setView("projectLikes");
-          fetchProjectLikes();
-        }}
-        onRequirements={() => {
-          setView("requirements");
-        }}
-        onSearchTalent={() => {
-          setView("searchTalent");
-        }}
+        isDarkMode={isDarkMode}
+        toggleTheme={toggleTheme}
+        onLogout={handleLogout}
       />
 
-      <main className="p-6 flex justify-center">
-        {view === "discover" && (
-          <div className="w-full max-w-lg">
-            {isDiscoverLoading ? (
-              <div className="flex flex-col items-center justify-center py-32">
-                {/* Minimal greyed-out robot icon */}
-                <div className="mb-12">
-                  <div className="text-5xl opacity-30 filter grayscale animate-pulse">
-                    🤖
-                  </div>
-                </div>
-                
-                {/* Text content */}
-                <div className="text-center space-y-3">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Finding your perfect match
-                  </h2>
-                  <p className="text-sm text-gray-500 max-w-xs">
-                    Analyzing projects based on your skills and interests
-                  </p>
-                </div>
-                
-                {/* Minimal progress indicator */}
-                <div className="mt-8 flex space-x-1.5">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Intelligent Search */}
-                <div className="mb-6">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search projects... (e.g., 'React beginner projects', 'AI mobile apps')"
-                      value={searchQuery}
-                      onChange={handleSearchChange}
-                      className="w-full px-4 py-3 pl-10 pr-4 border border-gray-300 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-400">🔍</span>
-                    </div>
-                    {isSearching && (
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Search Suggestions */}
-                  {searchSuggestions.length > 0 && (
-                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm font-medium text-blue-800 mb-2">💡 Search Tips:</p>
-                      <ul className="text-sm text-blue-700 space-y-1">
-                        {searchSuggestions.map((suggestion, index) => (
-                          <li key={index}>• {suggestion}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Search Results */}
-                  {searchResults.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Search Results</h3>
-                      <div className="space-y-3">
-                        {searchResults.map((result, index) => (
-                          <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                            <h4 className="font-medium text-gray-800">{result.title || 'Project'}</h4>
-                            <p className="text-sm text-gray-600 mt-1">{result.description || result.summary}</p>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {result.technologies?.map((tech, i) => (
-                                <span key={i} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                                  {tech}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {isShowingReshown && (
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-center">
-                      <span className="text-yellow-600 mr-2">🔄</span>
-                      <p className="text-sm text-yellow-800">
-                        You've seen all new projects! Showing projects you passed earlier.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {currentProject ? (
-                  <ProjectCard 
-                    project={currentProject}
-                    ownerUser={ownerUser}
-                    isSwiping={isSwiping}
-                    onLike={() => handleSwipe(true)}
-                    onPass={() => handleSwipe(false)}
-                  />
-                ) : (
-                  <div className="text-center text-gray-700 py-12">
-                    <h2 className="text-3xl font-bold mb-4">
-                      No more projects to discover!
-                    </h2>
-                    <p className="text-xl text-gray-600">
-                      Check back later for new projects or create your own.
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
+      <main className={`flex-1 md:ml-20 overflow-y-auto min-h-screen relative ${isDarkMode ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
+        {/* Top mobile header */}
+        <div className={`md:hidden h-16 flex items-center justify-between px-6 border-b ${isDarkMode ? 'border-white/5 bg-[#0f0f11]' : 'border-gray-200 bg-white'}`}>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </div>
+            <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>origin</span>
           </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-white/10 text-zinc-400' : 'hover:bg-gray-100 text-gray-600'}`}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button 
+              onClick={handleLogout}
+              className={`text-sm transition-colors ${isDarkMode ? 'text-zinc-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="pb-24 md:pb-0 p-6 flex justify-center">
+        {view === "discover" && (
+          <Discover 
+            key={currentProject?.id || 'no-project'}
+            projects={currentProject ? [currentProject] : []}
+            onConnect={(project) => handleSwipe(true, project.id)}
+            onLike={(project) => handleSwipe(true, project.id)}
+            onSkip={(project) => handleSwipe(false, project.id)}
+            isDarkMode={isDarkMode}
+            isLoading={isDiscoverLoading}
+          />
         )}
 
         {view === "matches" && (
@@ -854,6 +791,7 @@ export function App() {
             myProjects={myProjects}
             onSubmit={handlePostProject}
             onBack={() => setView("discover")}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -862,6 +800,7 @@ export function App() {
             currentUser={currentUser}
             onBack={() => setView("discover")}
             onEdit={() => setView("profileEdit")}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -873,6 +812,7 @@ export function App() {
               setView("profile");
             }}
             onBack={() => setView("profile")}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -885,6 +825,7 @@ export function App() {
               setView("projectEdit");
             }}
             onDelete={fetchMyProjects}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -897,6 +838,7 @@ export function App() {
             onApproval={() => {
               fetchMatches(); // Refresh matches when approval happens
             }}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -917,17 +859,22 @@ export function App() {
                 setView("userDetails");
               }
             }}
+            isDarkMode={isDarkMode}
           />
         )}
 
         {view === "searchTalent" && (
           <TalentSearch 
             onBack={() => setView("discover")}
+            isDarkMode={isDarkMode}
           />
         )}
+        </div>
       </main>
+      
+      <BottomNav currentView={view} setView={setView} />
     </div>
   );
 }
 
-export default App; 
+export default App;

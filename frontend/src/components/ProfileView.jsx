@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Mail, Github, Globe, MapPin, Award, BookOpen, Layers, Code, Briefcase, Plus, X, Trash2, Calendar, GitCommit } from 'lucide-react';
 
-export const ProfileView = ({ currentUser, onBack, onEdit }) => {
+export const ProfileView = ({ currentUser, onBack, onEdit, isDarkMode = true }) => {
   const [repoUrl, setRepoUrl] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
@@ -27,8 +28,7 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Analyze the repository
-      const analyzeResponse = await fetch('http://localhost:8000/analyze-repo/user-repo', {
+      const analyzeResponse = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}/analyze-repo/user-repo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,9 +42,6 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
       }
 
       const analysisData = await analyzeResponse.json();
-      console.log('Analysis data:', analysisData);
-
-      // Show modal with analysis results
       setAnalysisData(analysisData);
       setShowAnalysisModal(true);
       setRepoUrl('');
@@ -63,8 +60,7 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Add the analyzed repository to user profile
-      const addResponse = await fetch(`http://localhost:8000/users/${user.id}/repositories`, {
+      const addResponse = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}/users/${user.id}/repositories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +75,6 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
       }
 
       const updatedUser = await addResponse.json();
-      console.log('Updated user:', updatedUser);
       setUser(updatedUser);
       setShowAnalysisModal(false);
       setAnalysisData(null);
@@ -98,7 +93,7 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/users/${user.id}/repositories/${index}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}/users/${user.id}/repositories/${index}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -110,7 +105,6 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
       }
 
       const updatedUser = await response.json();
-      console.log('Repository removed, updated user:', updatedUser);
       setUser(updatedUser);
     } catch (err) {
       console.error('Error:', err);
@@ -118,49 +112,81 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
     }
   };
 
+  const inputClass = `w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+    isDarkMode 
+      ? 'bg-zinc-800/50 border-white/10 text-white placeholder-zinc-500' 
+      : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+  }`;
+
+  const cardClass = `rounded-3xl p-8 border backdrop-blur-xl ${
+    isDarkMode 
+      ? 'bg-[#18181b]/60 border-white/10' 
+      : 'bg-white border-gray-100 shadow-sm'
+  }`;
+
   return (
-  <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 mt-6 overflow-hidden">
+  <div className={`w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl mt-6 ${isDarkMode ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
     {/* Header Section */}
-    <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-8 py-8 text-white">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mr-6">
+    <div className={`relative px-8 py-12 ${
+       isDarkMode 
+          ? 'bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-pink-900/40 border-b border-white/10' 
+          : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600'
+    }`}>
+      {/* Abstract Shapes */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none"></div>
+      
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-6">
+          <div className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold shadow-xl border-4 ${
+             isDarkMode ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-white/20 text-indigo-600'
+          }`}>
             {user.avatar_url ? (
               <img 
                 src={user.avatar_url} 
                 alt={user.name}
-                className="w-20 h-20 rounded-full object-cover"
+                className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <span className="text-white text-3xl font-bold">
-                {user.name?.charAt(0) || 'U'}
-              </span>
+              (user.name?.charAt(0) || 'U')
             )}
           </div>
           <div>
-            <h1 className="text-3xl font-bold mb-2">{user.name}</h1>
-            <p className="text-indigo-100 text-lg">@{user.username}</p>
-            <p className="text-indigo-200 text-sm">{user.email}</p>
-            {user.org_type && (
-              <p className="text-indigo-200 text-sm mt-1">
-                {user.org_type}{user.org_name ? ` · ${user.org_name}` : ""}
-              </p>
-            )}
+            <h1 className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-white'}`}>{user.name}</h1>
+            <p className={`text-lg font-medium opacity-80 ${isDarkMode ? 'text-zinc-300' : 'text-indigo-100'}`}>@{user.username}</p>
+            <div className="flex flex-wrap gap-4 mt-3 justify-center md:justify-start">
+               {user.email && (
+                  <span className={`flex items-center gap-1.5 text-sm ${isDarkMode ? 'text-zinc-400' : 'text-indigo-100'}`}>
+                     <Mail className="w-4 h-4" /> {user.email}
+                  </span>
+               )}
+               {user.org_name && (
+                  <span className={`flex items-center gap-1.5 text-sm ${isDarkMode ? 'text-zinc-400' : 'text-indigo-100'}`}>
+                     <Briefcase className="w-4 h-4" /> {user.org_name}
+                  </span>
+               )}
+            </div>
           </div>
         </div>
         <div className="flex gap-3">
           <button
             onClick={onEdit}
-            className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors flex items-center gap-2"
+            className={`px-6 py-2.5 rounded-xl font-medium transition-all backdrop-blur-md ${
+               isDarkMode 
+                  ? 'bg-white/10 hover:bg-white/20 text-white border border-white/10' 
+                  : 'bg-white/20 hover:bg-white/30 text-white border border-white/20'
+            }`}
           >
-            <span>✏️</span>
             Edit Profile
           </button>
           <button
             onClick={onBack}
-            className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+            className={`px-6 py-2.5 rounded-xl font-medium transition-all backdrop-blur-md ${
+               isDarkMode 
+                  ? 'bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 border border-white/5' 
+                  : 'bg-black/20 hover:bg-black/30 text-white'
+            }`}
           >
-            ← Back
+            Back
           </button>
         </div>
       </div>
@@ -172,247 +198,199 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-8">
           {/* Bio Section */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="mr-2">📝</span>
+          <div className={cardClass}>
+            <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <BookOpen className="w-5 h-5 text-blue-500" />
               About Me
             </h3>
-            <p className="text-gray-700 leading-relaxed text-lg">
+            <p className={`leading-relaxed ${isDarkMode ? 'text-zinc-400' : 'text-gray-700'}`}>
               {user.bio || "No bio available. Click 'Edit Profile' to add your bio."}
             </p>
           </div>
 
           {/* Skills Section */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="mr-2">🛠️</span>
-              Skills & Expertise
-            </h3>
-            <div className="flex flex-wrap gap-3">
-              {(user.skills || []).map((skill, i) => (
-                <span
-                  key={i}
-                  className="px-4 py-2 bg-blue-100 text-blue-800 text-sm font-medium rounded-full border border-blue-200"
-                >
-                  {skill}
-                </span>
-              ))}
-              {(user.skills || []).length === 0 && (
-                <span className="text-gray-500 italic">No skills listed</span>
-              )}
-            </div>
+          <div className={cardClass}>
+             <h3 className={`text-xl font-bold mb-6 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+               <Award className="w-5 h-5 text-purple-500" />
+               Skills & Expertise
+             </h3>
+             <div className="flex flex-wrap gap-2">
+               {(user.skills || []).map((skill, i) => (
+                 <span
+                   key={i}
+                   className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                      isDarkMode 
+                        ? 'bg-purple-500/10 border-purple-500/20 text-purple-300' 
+                        : 'bg-purple-50 border-purple-100 text-purple-700'
+                   }`}
+                 >
+                   {skill}
+                 </span>
+               ))}
+               {(user.skills || []).length === 0 && (
+                  <span className={`italic ${isDarkMode ? 'text-zinc-600' : 'text-gray-400'}`}>No skills listed</span>
+               )}
+             </div>
           </div>
 
           {/* Technologies Section */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="mr-2">💻</span>
-              Technologies
-            </h3>
-            <div className="space-y-4">
-              {user.top_languages && user.top_languages.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">Programming Languages</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {user.top_languages.map((lang, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full border border-green-200"
-                      >
-                        {lang}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {user.top_frameworks && user.top_frameworks.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">Frameworks & Libraries</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {user.top_frameworks.map((fw, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full border border-purple-200"
-                      >
-                        {fw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className={cardClass}>
+             <h3 className={`text-xl font-bold mb-6 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+               <Layers className="w-5 h-5 text-indigo-500" />
+               Technologies
+             </h3>
+             
+             <div className="grid md:grid-cols-2 gap-6">
+               {(user.top_languages && user.top_languages.length > 0) && (
+                 <div>
+                   <h4 className={`text-sm font-semibold uppercase tracking-wider mb-3 ${isDarkMode ? 'text-zinc-500' : 'text-gray-500'}`}>Languages</h4>
+                   <div className="flex flex-wrap gap-2">
+                     {user.top_languages.map((lang, i) => (
+                       <span key={i} className={`px-3 py-1.5 rounded-lg text-sm border ${
+                          isDarkMode 
+                            ? 'bg-green-500/10 border-green-500/20 text-green-400' 
+                            : 'bg-green-50 border-green-100 text-green-700'
+                       }`}>
+                         {lang}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
+               )}
+               
+               {(user.top_frameworks && user.top_frameworks.length > 0) && (
+                 <div>
+                    <h4 className={`text-sm font-semibold uppercase tracking-wider mb-3 ${isDarkMode ? 'text-zinc-500' : 'text-gray-500'}`}>Frameworks</h4>
+                    <div className="flex flex-wrap gap-2">
+                     {user.top_frameworks.map((fw, i) => (
+                       <span key={i} className={`px-3 py-1.5 rounded-lg text-sm border ${
+                          isDarkMode 
+                            ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' 
+                            : 'bg-blue-50 border-blue-100 text-blue-700'
+                       }`}>
+                         {fw}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
+               )}
+             </div>
           </div>
-
-
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Activity Score */}
           {user.activity_score && (
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                <span className="mr-2">📊</span>
+            <div className={`rounded-3xl p-6 border ${
+               isDarkMode 
+                  ? 'bg-gradient-to-br from-green-900/20 to-emerald-900/20 border-green-500/20' 
+                  : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
+            }`}>
+              <h3 className={`text-lg font-bold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <Zap className="w-5 h-5 text-green-500" />
                 Activity Level
               </h3>
               <div className="flex items-center mb-2">
-                <div className="flex-1 bg-green-200 rounded-full h-3 mr-3">
+                <div className={`flex-1 rounded-full h-2 mr-3 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`}>
                   <div 
-                    className="bg-green-500 h-3 rounded-full transition-all duration-500" 
+                    className="bg-green-500 h-2 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" 
                     style={{ width: `${user.activity_score}%` }}
                   ></div>
                 </div>
-                <span className="text-green-700 font-semibold">{user.activity_score}%</span>
+                <span className="text-green-500 font-bold">{user.activity_score}%</span>
               </div>
-              <p className="text-sm text-green-700">
-                {user.activity_score > 80 ? "Very Active" : 
-                 user.activity_score > 60 ? "Active" : 
-                 user.activity_score > 40 ? "Moderately Active" : "Getting Started"}
+              <p className={`text-sm ${isDarkMode ? 'text-zinc-400' : 'text-gray-600'}`}>
+                {user.activity_score > 80 ? "🔥 Very Active" : 
+                 user.activity_score > 60 ? "⚡ Active" : 
+                 user.activity_score > 40 ? "🌱 Moderately Active" : "💤 Getting Started"}
               </p>
             </div>
           )}
 
-          {/* GitHub Profile */}
-          {user.github_profile_url && (
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                <span className="mr-2">🐙</span>
-                GitHub Profile
-              </h3>
-              <a
-                href={user.github_profile_url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-600 hover:underline text-sm"
-              >
-                {user.github_profile_url}
-              </a>
-            </div>
-          )}
-
           {/* GitHub Repositories Management */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-              <span className="mr-2">📑</span>
-              GitHub Repositories
+          <div className={cardClass}>
+            <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <Github className="w-5 h-5" />
+              Repositories
             </h3>
             
             {/* Add Repository Form */}
-            <div className="mb-4">
-              <input
-                type="url"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2"
-                placeholder="https://github.com/username/repo"
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                disabled={analyzing}
-              />
-              {error && (
-                <p className="text-red-600 text-sm mb-2">{error}</p>
-              )}
-              {successMessage && (
-                <p className="text-green-600 text-sm mb-2">{successMessage}</p>
-              )}
-              <button
-                onClick={handleAnalyzeRepo}
-                disabled={analyzing || !repoUrl.trim()}
-                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-              >
-                {analyzing ? 'Analyzing...' : 'Analyze & Add Repository'}
-              </button>
-              <p className="text-xs text-gray-500 mt-1">Max 5 repositories</p>
+            <div className="mb-6">
+              <div className="flex gap-2">
+                 <input
+                   type="url"
+                   className={`flex-1 px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
+                      isDarkMode 
+                         ? 'bg-zinc-900/50 border-white/10 text-white placeholder-zinc-600' 
+                         : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'
+                   }`}
+                   placeholder="github.com/user/repo"
+                   value={repoUrl}
+                   onChange={(e) => setRepoUrl(e.target.value)}
+                   disabled={analyzing}
+                 />
+                 <button
+                   onClick={handleAnalyzeRepo}
+                   disabled={analyzing || !repoUrl.trim()}
+                   className={`px-3 py-2 rounded-lg transition-colors ${
+                      isDarkMode
+                         ? 'bg-white text-black hover:bg-zinc-200 disabled:opacity-50'
+                         : 'bg-black text-white hover:bg-gray-800 disabled:opacity-50'
+                   }`}
+                 >
+                    {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                 </button>
+              </div>
+              {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+              {successMessage && <p className="text-green-500 text-xs mt-2">{successMessage}</p>}
             </div>
 
             {/* Repository List */}
             {Array.isArray(user.github_selected_repos) && user.github_selected_repos.length > 0 ? (
               <div className="space-y-3">
                 {user.github_selected_repos.map((repo, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-lg p-3 border border-gray-200"
-                  >
+                  <div key={i} className={`rounded-xl p-3 border transition-colors group ${
+                     isDarkMode 
+                        ? 'bg-zinc-900/30 border-white/5 hover:bg-zinc-900/50' 
+                        : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
+                  }`}>
                     <div className="flex items-start justify-between mb-2">
-                      <a
-                        href={repo.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 hover:underline font-medium text-sm flex-1"
-                      >
+                      <a href={repo.url} target="_blank" rel="noreferrer" className={`font-medium text-sm truncate hover:underline ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                         {repo.name || repo.url}
                       </a>
-                      <button
-                        onClick={() => handleRemoveRepo(i)}
-                        className="text-red-600 hover:text-red-800 text-sm ml-2"
-                        title="Remove repository"
-                      >
-                        ×
+                      <button onClick={() => handleRemoveRepo(i)} className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/10 rounded">
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
                     
-                    {repo.analysis_summary && (
-                      <p className="text-xs text-gray-600 mb-2">{repo.analysis_summary}</p>
-                    )}
-                    
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {repo.languages && repo.languages.map((lang, idx) => (
-                        <span key={idx} className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                      {repo.languages?.slice(0,3).map((lang, idx) => (
+                        <span key={idx} className={`px-1.5 py-0.5 text-[10px] rounded border ${
+                           isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-400' : 'bg-white border-gray-200 text-gray-500'
+                        }`}>
                           {lang}
-                        </span>
-                      ))}
-                      {repo.frameworks && repo.frameworks.map((fw, idx) => (
-                        <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">
-                          {fw}
                         </span>
                       ))}
                     </div>
                     
-                    {repo.commits_count > 0 && (
-                      <p className="text-xs text-gray-500">
-                        {repo.commits_count} commits · {repo.contributions}
-                      </p>
-                    )}
-                    
                     {repo.last_analyzed && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        Analyzed: {new Date(repo.last_analyzed).toLocaleDateString()}
-                      </p>
+                       <div className={`flex items-center gap-1 text-[10px] ${isDarkMode ? 'text-zinc-600' : 'text-gray-400'}`}>
+                          <Calendar className="w-3 h-3" />
+                          <span>{new Date(repo.last_analyzed).toLocaleDateString()}</span>
+                       </div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 italic">No repositories added yet</p>
+              <div className={`text-center py-8 rounded-xl border border-dashed text-sm ${
+                 isDarkMode ? 'border-zinc-800 text-zinc-600' : 'border-gray-200 text-gray-400'
+              }`}>
+                 <GitCommit className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                 No repositories connected
+              </div>
             )}
-          </div>
-
-          {/* User Stats */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="mr-2">📈</span>
-              Profile Stats
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">User ID:</span>
-                <span className="font-mono text-sm text-gray-800">#{user.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Skills:</span>
-                <span className="text-gray-800">{(user.skills || []).length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Languages:</span>
-                <span className="text-gray-800">{(user.top_languages || []).length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Frameworks:</span>
-                <span className="text-gray-800">{(user.top_frameworks || []).length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Repositories:</span>
-                <span className="text-gray-800">{(user.github_selected_repos || []).length}/5</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -420,178 +398,66 @@ export const ProfileView = ({ currentUser, onBack, onEdit }) => {
 
     {/* Repository Analysis Modal */}
     {showAnalysisModal && analysisData && (
-      <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className={`rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border ${
+           isDarkMode ? 'bg-[#18181b] border-white/10' : 'bg-white border-gray-200'
+        }`}>
           {/* Modal Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-6 py-4 text-white rounded-t-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-bold flex items-center">
-                <span className="mr-2">🔍</span>
+          <div className={`px-8 py-6 flex items-center justify-between border-b ${isDarkMode ? 'border-white/5' : 'border-gray-100'}`}>
+             <h3 className={`text-2xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <Code className="w-6 h-6 text-indigo-500" />
                 Repository Analysis
-              </h3>
-              <button
-                onClick={() => {
-                  setShowAnalysisModal(false);
-                  setAnalysisData(null);
-                }}
-                className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
-              >
-                <span className="text-2xl">×</span>
-              </button>
-            </div>
+             </h3>
+             <button onClick={() => { setShowAnalysisModal(false); setAnalysisData(null); }} className={`p-2 rounded-full hover:bg-white/10 ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                <X className="w-6 h-6" />
+             </button>
           </div>
 
-          {/* Modal Content */}
-          <div className="p-6 space-y-6">
-            {/* Repository Info */}
-            <div className="bg-gray-50 rounded-xl p-4">
-              <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                <span className="mr-2">📦</span>
-                Repository Details
-              </h4>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-sm font-medium text-gray-600">Name:</span>
-                  <p className="text-gray-800 font-semibold">{analysisData.name}</p>
+          <div className="p-8 space-y-8">
+            {/* Repo Details */}
+             <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-zinc-900/50 border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center justify-between mb-2">
+                   <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{analysisData.name}</h4>
+                   <a href={analysisData.url} target="_blank" className="text-sm text-blue-500 hover:underline">{analysisData.url}</a>
                 </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-600">URL:</span>
-                  <a
-                    href={analysisData.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline text-sm block break-all"
-                  >
-                    {analysisData.url}
-                  </a>
+                <div className="flex gap-4 text-sm">
+                   <span className={isDarkMode ? 'text-zinc-400' : 'text-gray-600'}>{analysisData.commits_count} commits</span>
+                   <span className={isDarkMode ? 'text-zinc-400' : 'text-gray-600'}>{analysisData.contributions} contribution type</span>
                 </div>
-              </div>
-            </div>
+             </div>
 
-            {/* Contribution Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-green-700">Commits</span>
-                  <span className="text-2xl">📊</span>
-                </div>
-                <p className="text-3xl font-bold text-green-800 mt-2">{analysisData.commits_count || 0}</p>
-              </div>
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-blue-700">Role</span>
-                  <span className="text-2xl">👤</span>
-                </div>
-                <p className="text-lg font-semibold text-blue-800 mt-2">{analysisData.contributions || 'Contributor'}</p>
-              </div>
-            </div>
+             {/* AI Summary */}
+             <div>
+                <h4 className={`text-sm font-bold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-zinc-500' : 'text-gray-500'}`}>Analysis Summary</h4>
+                <p className={`leading-relaxed ${isDarkMode ? 'text-zinc-300' : 'text-gray-700'}`}>{analysisData.analysis_summary}</p>
+             </div>
 
-            {/* Analysis Summary */}
-            {analysisData.analysis_summary && (
-              <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-                <h4 className="text-sm font-semibold text-purple-800 mb-2 flex items-center">
-                  <span className="mr-2">📝</span>
-                  Analysis Summary
-                </h4>
-                <p className="text-gray-700 text-sm leading-relaxed">{analysisData.analysis_summary}</p>
-              </div>
-            )}
-
-            {/* Skills Detected */}
-            {analysisData.skills_detected && analysisData.skills_detected.length > 0 && (
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                  <span className="mr-2">🛠️</span>
-                  Skills Detected
-                </h4>
+             {/* Detected Skills */}
+             <div>
+                <h4 className={`text-sm font-bold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-zinc-500' : 'text-gray-500'}`}>Skills Detected</h4>
                 <div className="flex flex-wrap gap-2">
-                  {analysisData.skills_detected.map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full border border-blue-200"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Technologies */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Languages */}
-              {analysisData.languages && analysisData.languages.length > 0 && (
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="mr-2">💻</span>
-                    Languages
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisData.languages.map((lang, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full border border-green-200"
-                      >
-                        {lang}
+                   {analysisData.skills_detected?.map((skill, i) => (
+                      <span key={i} className={`px-3 py-1 rounded-lg text-sm border ${
+                         isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300' : 'bg-indigo-50 border-indigo-100 text-indigo-700'
+                      }`}>
+                         {skill}
                       </span>
-                    ))}
-                  </div>
+                   ))}
                 </div>
-              )}
-
-              {/* Frameworks */}
-              {analysisData.frameworks && analysisData.frameworks.length > 0 && (
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="mr-2">⚡</span>
-                    Frameworks
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisData.frameworks.map((fw, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full border border-purple-200"
-                      >
-                        {fw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Last Analyzed */}
-            {analysisData.last_analyzed && (
-              <div className="text-center">
-                <p className="text-xs text-gray-500">
-                  Analyzed on {new Date(analysisData.last_analyzed).toLocaleString()}
-                </p>
-              </div>
-            )}
+             </div>
           </div>
 
-          {/* Modal Footer */}
-          <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end gap-3">
-            <button
-              onClick={() => {
-                setShowAnalysisModal(false);
-                setAnalysisData(null);
-              }}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirmAddRepo}
-              className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-lg hover:from-indigo-700 hover:to-purple-800 transition-all shadow-lg font-medium flex items-center gap-2"
-            >
-              <span>✓</span>
-              Add to Profile
-            </button>
+          <div className={`px-8 py-6 border-t flex justify-end gap-3 ${isDarkMode ? 'border-white/5 bg-zinc-900/50' : 'border-gray-100 bg-gray-50'}`}>
+             <button onClick={() => { setShowAnalysisModal(false); setAnalysisData(null); }} className={`px-6 py-2 rounded-xl font-medium ${isDarkMode ? 'text-zinc-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+                Cancel
+             </button>
+             <button onClick={handleConfirmAddRepo} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-500 shadow-lg shadow-indigo-500/20">
+                Confirm & Add
+             </button>
           </div>
         </div>
       </div>
     )}
-    </div>
+  </div>
   );
 };
