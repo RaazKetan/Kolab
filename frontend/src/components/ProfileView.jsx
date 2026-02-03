@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Github, Globe, MapPin, Award, BookOpen, Layers, Code, Briefcase, Plus, X, Trash2, Calendar, GitCommit } from 'lucide-react';
+import { Mail, Github, Globe, MapPin, Award, BookOpen, Layers, Code, Briefcase, Plus, X, Trash2, Calendar, GitCommit, Zap, Loader2 } from 'lucide-react';
 
 export const ProfileView = ({ currentUser, onBack, onEdit, isDarkMode = true }) => {
   const [repoUrl, setRepoUrl] = useState('');

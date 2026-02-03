@@ -13,8 +13,6 @@ import os
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
-# SECRET_KEY = "tkqL9COZKVfZbDY5EHWuNeScZ-gSR3mhaltD03UFxaI"
-# ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")

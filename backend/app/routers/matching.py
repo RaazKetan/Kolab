@@ -174,26 +174,81 @@ def swipe_project(
     
     return db_swipe
 
-@router.get("/matches", response_model=list[schemas.ProjectResponse])
+@router.get("/matches", response_model=list[schemas.MatchResponse])
 def get_matches(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Get project IDs that user has liked AND that have been approved
-    liked_and_approved_ids = db.query(models.Swipe.project_id).filter(
+    # Get projects where current user liked AND was approved
+    # These are matches from the current user's perspective (they liked, got approved)
+    user_matches = db.query(models.Project, models.Swipe.user_id).join(
+        models.Swipe, models.Project.id == models.Swipe.project_id
+    ).filter(
         and_(
             models.Swipe.user_id == current_user.id,
             models.Swipe.is_like == True,
             models.Swipe.approved_by_owner == True
         )
-    ).subquery()
-    
-    # Get projects based on liked and approved IDs
-    liked_projects = db.query(models.Project).filter(
-        models.Project.id.in_(liked_and_approved_ids)
     ).all()
     
-    return liked_projects
+    # Get projects owned by current user where someone liked AND was approved
+    # These are matches from the project owner's perspective (someone liked their project)
+    owner_matches = db.query(models.Project, models.Swipe.user_id).join(
+        models.Swipe, models.Project.id == models.Swipe.project_id
+    ).filter(
+        and_(
+            models.Project.owner_id == current_user.id,
+            models.Swipe.is_like == True,
+            models.Swipe.approved_by_owner == True,
+            models.Swipe.user_id != current_user.id  # Don't include self-swipes
+        )
+    ).all()
+    
+    result: list[schemas.MatchResponse] = []
+    
+    # For user matches: liker is current user, so we want to show project owner
+    for proj, liker_id in user_matches:
+        result.append(schemas.MatchResponse(
+            id=proj.id,
+            title=proj.title,
+            summary=proj.summary,
+            repo_url=proj.repo_url,
+            languages=proj.languages or [],
+            frameworks=proj.frameworks or [],
+            project_type=proj.project_type or "unknown",
+            domains=proj.domains or [],
+            skills=proj.skills or [],
+            complexity=proj.complexity or "intermediate",
+            roles=proj.roles or [],
+            embedding_summary=proj.embedding_summary,
+            owner_id=proj.owner_id,
+            is_active=bool(proj.is_active),
+            created_at=proj.created_at,
+            liker_user_id=proj.owner_id  # Show project owner as the "other person"
+        ))
+    
+    # For owner matches: show the person who liked
+    for proj, liker_id in owner_matches:
+        result.append(schemas.MatchResponse(
+            id=proj.id,
+            title=proj.title,
+            summary=proj.summary,
+            repo_url=proj.repo_url,
+            languages=proj.languages or [],
+            frameworks=proj.frameworks or [],
+            project_type=proj.project_type or "unknown",
+            domains=proj.domains or [],
+            skills=proj.skills or [],
+            complexity=proj.complexity or "intermediate",
+            roles=proj.roles or [],
+            embedding_summary=proj.embedding_summary,
+            owner_id=proj.owner_id,
+            is_active=bool(proj.is_active),
+            created_at=proj.created_at,
+            liker_user_id=liker_id  # Show the person who liked as the "other person"
+        ))
+    
+    return result
 
 @router.get("/approved-matches", response_model=list[schemas.ProjectResponse])
 def get_approved_matches(

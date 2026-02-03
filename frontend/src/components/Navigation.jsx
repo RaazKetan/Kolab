@@ -2,8 +2,29 @@ import {
   Compass, MessageSquare, Users, PlusSquare, FolderGit2, Heart,
   GitCommit, User, Sun, Moon, LogOut
 } from 'lucide-react';
+import { useState, useRef } from 'react';
 
 export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleTheme, onLogout }) => {
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigationTimeoutRef = useRef(null);
+
+  const handleNavigation = (viewId) => {
+    if (isNavigating) return; // Prevent rapid clicks
+    
+    setIsNavigating(true);
+    setView(viewId);
+    
+    // Clear any existing timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+    
+    // Re-enable after 300ms
+    navigationTimeoutRef.current = setTimeout(() => {
+      setIsNavigating(false);
+    }, 300);
+  };
+
   const navItems = [
     { id: 'discover', icon: Compass, label: 'Discover' },
     { id: 'matches', icon: MessageSquare, label: 'Matches' },
@@ -28,10 +49,11 @@ export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleT
         {navItems.map(item => (
           <button 
             key={item.id}
-            onClick={() => setView(item.id)}
+            onClick={() => handleNavigation(item.id)}
+            disabled={isNavigating}
             className={`relative h-12 flex items-center px-6 transition-all duration-200 ${
               currentView === item.id ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-            }`}
+            } disabled:opacity-50`}
           >
             {currentView === item.id && (
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] rounded-r-full" />
@@ -73,10 +95,11 @@ export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleT
 
         {/* Profile */}
         <button 
-          onClick={() => setView('profileEdit')}
+          onClick={() => handleNavigation('profile')}
+          disabled={isNavigating}
           className={`flex items-center gap-3 p-2 rounded-xl w-full transition-colors ${
-            currentView === 'profileEdit' ? 'bg-white/10' : 'hover:bg-white/5'
-          }`}
+            currentView === 'profile' || currentView === 'profileEdit' ? 'bg-white/10' : 'hover:bg-white/5'
+          } disabled:opacity-50`}
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 border border-white/20 shrink-0" />
           <div className="text-left opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
@@ -91,27 +114,53 @@ export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleT
 
 // Bottom Nav for Mobile
 export const BottomNav = ({ currentView, setView }) => {
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigationTimeoutRef = useRef(null);
+
+  const handleNavigation = (viewId) => {
+    if (isNavigating) return; // Prevent rapid clicks
+    
+    setIsNavigating(true);
+    setView(viewId);
+    
+    // Clear any existing timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+    
+    // Re-enable after 300ms
+    navigationTimeoutRef.current = setTimeout(() => {
+      setIsNavigating(false);
+    }, 300);
+  };
+
   const navItems = [
     { id: 'discover', icon: Compass },
     { id: 'matches', icon: MessageSquare },
     { id: 'postProject', icon: PlusSquare },
-    { id: 'profileEdit', icon: User },
+    { id: 'profile', icon: User },
   ];
 
   return (
-    <div className="md:hidden fixed bottom-6 left-6 right-6 h-16 bg-[#0f0f11]/90 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-evenly z-50 shadow-2xl">
-      {navItems.map(item => (
-        <button 
-          key={item.id}
-          onClick={() => setView(item.id)}
-          className={`p-3 rounded-full transition-all ${
-            currentView === item.id ? 'bg-white/10 text-blue-400' : 'text-zinc-500'
-          }`}
-        >
-          <item.icon className="w-5 h-5" />
-        </button>
-      ))}
-    </div>
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0f0f11]/95 backdrop-blur-lg border-t border-white/5 z-50">
+      <div className="flex items-center justify-around px-2 py-2">
+        {navItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => handleNavigation(item.id)}
+            disabled={isNavigating}
+            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+              currentView === item.id 
+                ? 'text-blue-400 bg-white/10' 
+                : 'text-zinc-500 hover:text-zinc-300'
+            } disabled:opacity-50`}
+          >
+            <item.icon className="w-6 h-6" />
+            <span className="text-xs font-medium">{item.id === 'discover' ? 'Discover' : item.id === 'matches' ? 'Matches' : item.id === 'postProject' ? 'Post' : 'Profile'}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
   );
 };
 

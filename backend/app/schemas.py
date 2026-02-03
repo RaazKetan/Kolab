@@ -99,6 +99,25 @@ class OwnerMatchItem(BaseModel):
     liked_by_user_id: int
     approved_by_owner: bool | None = False
 
+class MatchResponse(BaseModel):
+    # Project data with the user who matched (liker)
+    id: int
+    title: str
+    summary: str
+    repo_url: Optional[str]
+    languages: List[str]
+    frameworks: List[str]
+    project_type: str
+    domains: List[str]
+    skills: List[str]
+    complexity: str
+    roles: List[str]
+    embedding_summary: Optional[str]
+    owner_id: int
+    is_active: bool
+    created_at: datetime
+    liker_user_id: int  # The user who liked this project (the matcher)
+
 class SwipeCreate(BaseModel):
     project_id: int
     is_like: bool
@@ -177,3 +196,4 @@ class AnalyzeRepoResponse(BaseModel):
 
 class AddRepositoryRequest(BaseModel):
     repo_data: dict  # Contains the analyzed repository data
+

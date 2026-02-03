@@ -91,26 +91,28 @@ def send_message(msg: schemas.ChatMessageCreate, current_user: models.User = Dep
         raise HTTPException(status_code=403, detail="Not permitted")
 
     # Monitor the message with Gemini
-    try:
-        monitoring_result = monitor_chat_message(
-            msg.content, 
-            project.title, 
-            project.summary or ""
-        )
-        
-        # If message is not project-related, return a warning
-        if not monitoring_result.get("is_project_related", True):
-            warning = monitoring_result.get("warning", "")
-            suggestion = monitoring_result.get("suggestion", "")
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Message not project-related. {warning} {suggestion}".strip()
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Chat monitoring failed: {e}")
-        # Continue with message if monitoring fails
+    # DISABLED: Too strict for initial greetings and conversation starters
+    # Users should be able to say "hi" or start conversations naturally
+    # try:
+    #     monitoring_result = monitor_chat_message(
+    #         msg.content, 
+    #         project.title, 
+    #         project.summary or ""
+    #     )
+    #     
+    #     # If message is not project-related, return a warning
+    #     if not monitoring_result.get("is_project_related", True):
+    #         warning = monitoring_result.get("warning", "")
+    #         suggestion = monitoring_result.get("suggestion", "")
+    #         raise HTTPException(
+    #             status_code=400, 
+    #             detail=f"Message not project-related. {warning} {suggestion}".strip()
+    #         )
+    # except HTTPException:
+    #     raise
+    # except Exception as e:
+    #     print(f"Chat monitoring failed: {e}")
+    #     # Continue with message if monitoring fails
 
     db_msg = models.ChatMessage(
         project_id=msg.project_id,

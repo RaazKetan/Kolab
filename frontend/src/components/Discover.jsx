@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search, Filter, Loader2, ChevronLeft, ChevronRight, ArrowRight,
   Bookmark, RefreshCw, CheckCircle2, Sparkles, Code2, Users, Zap
@@ -28,7 +28,7 @@ const SwipeCard = ({ project, isDarkMode = true }) => {
     ...(project.frameworks || [])
   ];
 
-  console.log('SwipeCard rendering with project:', {
+  ('SwipeCard rendering with project:', {
     title: project.title,
     summary: project.summary,
     languages: project.languages,
@@ -165,9 +165,14 @@ export const Discover = ({ projects = [], onConnect, onLike, onSkip, isDarkMode 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [filteredProjects, setFilteredProjects] = useState(projects);
+  
+  // Button cooldown states
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [isCollaborating, setIsCollaborating] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
 
   useEffect(() => {
-    console.log('Discover useEffect triggered', {
+    ('Discover useEffect triggered', {
       newProjectId: projects[0]?.id,
       currentProjectId: filteredProjects[0]?.id
     });
@@ -180,7 +185,7 @@ export const Discover = ({ projects = [], onConnect, onLike, onSkip, isDarkMode 
     // And prevents the index from getting stuck if we somehow navigated away
     if (projects[0]?.id !== filteredProjects[0]?.id) {
       setCurrentIndex(0);
-      console.log('New project ID detected - resetting index to 0');
+      ('New project ID detected - resetting index to 0');
     }
   }, [projects]); // Trigger whenever parent passes new projects array
 
@@ -203,11 +208,17 @@ export const Discover = ({ projects = [], onConnect, onLike, onSkip, isDarkMode 
   };
 
   const handleNext = () => {
-    console.log('Skip button clicked, current project:', currentProject);
+    if (isSkipping) return; // Prevent multiple clicks
+    
+    ('Skip button clicked, current project:', currentProject);
+    setIsSkipping(true);
+    
     if (onSkip && currentProject) {
       onSkip(currentProject);
     }
-    // Parent handles navigation - do NOT manually increment index
+    
+    // Re-enable after 1 second
+    setTimeout(() => setIsSkipping(false), 1000);
   };
 
   const handlePrev = () => {
@@ -217,11 +228,30 @@ export const Discover = ({ projects = [], onConnect, onLike, onSkip, isDarkMode 
   };
 
   const handleConnect = () => {
-    console.log('Collaborate button clicked, current project:', currentProject);
+    if (isCollaborating) return; // Prevent multiple clicks
+    
+    ('Collaborate button clicked, current project:', currentProject);
+    setIsCollaborating(true);
+    
     if (onConnect && currentProject) {
       onConnect(currentProject);
     }
-    // Parent handles navigation - do NOT manually increment index
+    
+    // Re-enable after 1 second
+    setTimeout(() => setIsCollaborating(false), 1000);
+  };
+
+  const handleLike = () => {
+    if (isLiking) return; // Prevent multiple clicks
+    
+    setIsLiking(true);
+    
+    if (onLike && currentProject) {
+      onLike(currentProject);
+    }
+    
+    // Re-enable after 1 second
+    setTimeout(() => setIsLiking(false), 1000);
   };
 
   const handleReset = () => {
@@ -232,7 +262,7 @@ export const Discover = ({ projects = [], onConnect, onLike, onSkip, isDarkMode 
 
   const currentProject = filteredProjects[currentIndex];
   
-  console.log('Current project state:', {
+  ('Current project state:', {
     currentProject,
     currentIndex,
     filteredProjectsLength: filteredProjects.length,
@@ -284,35 +314,38 @@ export const Discover = ({ projects = [], onConnect, onLike, onSkip, isDarkMode 
 
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={handleNext} 
+                  onClick={handleNext}
+                  disabled={isSkipping}
                   className={`px-6 py-3 rounded-full border font-medium transition-all ${
                     isDarkMode 
-                      ? 'bg-transparent border-white/20 text-white hover:bg-white/5' 
-                      : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'
-                  }`}
+                      ? 'bg-transparent border-white/20 text-white hover:bg-white/5 disabled:opacity-50' 
+                      : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50 disabled:opacity-50'
+                  } disabled:cursor-not-allowed`}
                 >
-                  Skip
+                  {isSkipping ? 'Skipping...' : 'Skip'}
                 </button>
                 <button 
                   onClick={handleConnect}
+                  disabled={isCollaborating}
                   className={`group px-6 py-3 rounded-full font-bold transition-all shadow-lg flex items-center gap-2 ${
                     isDarkMode 
-                      ? 'bg-white text-black hover:bg-blue-500 hover:text-white hover:shadow-blue-500/25' 
-                      : 'bg-gray-900 text-white hover:bg-blue-600 hover:shadow-blue-500/25'
-                  }`}
+                      ? 'bg-white text-black hover:bg-blue-500 hover:text-white hover:shadow-blue-500/25 disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black' 
+                      : 'bg-gray-900 text-white hover:bg-blue-600 hover:shadow-blue-500/25 disabled:opacity-50'
+                  } disabled:cursor-not-allowed`}
                 >
-                  Collaborate <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  {isCollaborating ? 'Processing...' : 'Collaborate'} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
 
               <div className="flex gap-2">
                 <button 
-                  onClick={() => onLike && onLike(currentProject)}
+                  onClick={handleLike}
+                  disabled={isLiking}
                   className={`p-4 rounded-full border backdrop-blur-sm transition-all ${
                     isDarkMode 
-                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-yellow-400' 
-                      : 'bg-white border-gray-200 text-gray-900 hover:bg-gray-50 hover:text-yellow-500'
-                  }`}
+                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-yellow-400 disabled:opacity-50' 
+                      : 'bg-white border-gray-200 text-gray-900 hover:bg-gray-50 hover:text-yellow-500 disabled:opacity-50'
+                  } disabled:cursor-not-allowed`}
                 >
                   <Bookmark className="w-6 h-6" />
                 </button>

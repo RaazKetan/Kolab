@@ -91,7 +91,7 @@ export function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log('fetchNextProject: Setting new project:', data);
+        ('fetchNextProject: Setting new project:', data);
         
         // Loop protection: If backend still returns the same project, force null
         if (excludeId && data.id === excludeId) {
@@ -433,28 +433,28 @@ export function App() {
         const matchesData = await response.json();
         setMatches(matchesData);
         
-        // Fetch owner data for each match
-        const ownerPromises = matchesData.map(async (project) => {
+        // Fetch liker user data for each match (the person who matched)
+        const likerPromises = matchesData.map(async (match) => {
           try {
-            const ownerResponse = await fetch(`${API_BASE}/users/${project.owner_id}`, {
+            const likerResponse = await fetch(`${API_BASE}/users/${match.liker_user_id}`, {
               headers: { Authorization: `Bearer ${token}` }
             });
-            if (ownerResponse.ok) {
-              const ownerData = await ownerResponse.json();
-              return { projectId: project.id, owner: ownerData };
+            if (likerResponse.ok) {
+              const likerData = await likerResponse.json();
+              return { projectId: match.id, liker: likerData };
             }
           } catch (error) {
-            console.error(`Error fetching owner for project ${project.id}:`, error);
+            console.error(`Error fetching liker for project ${match.id}:`, error);
           }
-          return { projectId: project.id, owner: null };
+          return { projectId: match.id, liker: null };
         });
         
-        const ownerData = await Promise.all(ownerPromises);
-        const ownerMap = {};
-        ownerData.forEach(({ projectId, owner }) => {
-          ownerMap[projectId] = owner;
+        const likerData = await Promise.all(likerPromises);
+        const likerMap = {};
+        likerData.forEach(({ projectId, liker }) => {
+          likerMap[projectId] = liker;
         });
-        setMatchOwners(ownerMap);
+        setMatchOwners(likerMap); // Keep same state name for now to avoid breaking other code
       }
     } catch (error) {
       console.error("Error fetching matches:", error);
@@ -470,16 +470,16 @@ export function App() {
     const targetId = projectId || (currentProject && currentProject.id);
     
     if (!targetId) {
-      console.log("No current project to swipe on");
+      ("No current project to swipe on");
       return;
     }
     
     if (isSwiping) {
-      console.log("Already swiping, please wait...");
+      ("Already swiping, please wait...");
       return;
     }
     
-    console.log(`Swiping ${isLike ? 'like' : 'pass'} on project ${targetId}`);
+    (`Swiping ${isLike ? 'like' : 'pass'} on project ${targetId}`);
     setIsSwiping(true);
     
     const token = localStorage.getItem("token");
@@ -503,15 +503,15 @@ export function App() {
         }),
       });
       
-      console.log(`Swipe response status: ${res.status}`);
+      (`Swipe response status: ${res.status}`);
       
       if (!res.ok) {
         const errorData = await res.json();
-        console.log("Swipe error response:", errorData);
+        ("Swipe error response:", errorData);
         
         if (errorData.detail === "Already swiped on this project") {
           // If already swiped, just move to next project
-          console.log("Project already swiped, moving to next...");
+          ("Project already swiped, moving to next...");
           // Pass excludeId to force backend to give us a different project
           await fetchNextProject(targetId);
           return;
@@ -522,20 +522,20 @@ export function App() {
       }
       
       const swipeResult = await res.json();
-      console.log("Swipe successful:", swipeResult);
+      ("Swipe successful:", swipeResult);
       
       // Show success message
       if (isLike) {
-        console.log("✅ Project liked successfully!");
+        ("✅ Project liked successfully!");
       } else {
-        console.log("❌ Project passed successfully!");
+        ("❌ Project passed successfully!");
       }
       
       // Move to next project after successful swipe
-      console.log("Moving to next project after successful swipe...");
+      ("Moving to next project after successful swipe...");
       // Pass excludeId to prevent Reshow of the same project
       await fetchNextProject(targetId);
-      console.log("Next project fetched, current project:", currentProject);
+      ("Next project fetched, current project:", currentProject);
     } catch (error) {
       console.error("Swipe request failed:", error);
       alert("Failed to swipe. Please check your connection and try again.");
@@ -717,38 +717,58 @@ export function App() {
 
         {view === "matches" && (
           <div className="w-full max-w-6xl">
-            <h2 className="text-3xl font-bold text-gray-800 text-center mb-8">
+            <h2 className={`text-3xl font-bold text-center mb-8 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               Your Matches
             </h2>
             {matches.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.map((project) => {
-                  const notification = notifications.find(n => n.project_id === project.id);
-                  const messageNotification = messageNotifications[project.id] || 0;
-                  const totalNotifications = (notification?.message_count || 0) + messageNotification;
-                  
-                  return (
-                    <MatchCard 
-                      key={project.id}
-                      project={project}
-                      onChat={openChat}
-                      onViewProject={viewProject}
-                      onViewOwner={viewOwner}
-                      notificationCount={totalNotifications}
-                      ownerUser={matchOwners[project.id]}
-                    />
-                  );
-                })}
+                {(() => {
+                  // Group matches by liker_user_id
+                  const groupedMatches = matches.reduce((acc, match) => {
+                    const key = match.liker_user_id;
+                    if (!acc[key]) {
+                      acc[key] = {
+                        likerUserId: key,
+                        projects: []
+                      };
+                    }
+                    acc[key].projects.push(match);
+                    return acc;
+                  }, {});
+
+                  // Convert to array and render
+                  return Object.values(groupedMatches).map((group) => {
+                    // Calculate total notifications for all projects from this user
+                    const totalNotifications = group.projects.reduce((sum, project) => {
+                      const notification = notifications.find(n => n.project_id === project.id);
+                      const messageNotification = messageNotifications[project.id] || 0;
+                      return sum + (notification?.message_count || 0) + messageNotification;
+                    }, 0);
+                    
+                    return (
+                      <MatchCard 
+                        key={group.likerUserId}
+                        projects={group.projects}
+                        onChat={openChat}
+                        onViewProject={viewProject}
+                        onViewOwner={viewOwner}
+                        notificationCount={totalNotifications}
+                        likerUser={matchOwners[group.projects[0].id]}
+                        isDarkMode={isDarkMode}
+                      />
+                    );
+                  });
+                })()}
               </div>
             ) : (
-              <div className="text-center text-gray-700 py-12">
+              <div className={`text-center py-12 ${isDarkMode ? 'text-zinc-400' : 'text-gray-700'}`}>
                 <p className="text-xl">
                   No matches yet.
                 </p>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className={`text-sm mt-2 ${isDarkMode ? 'text-zinc-500' : 'text-gray-500'}`}>
                   Like projects and wait for project owners to approve your likes to start chatting!
                 </p>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-zinc-600' : 'text-gray-400'}`}>
                   Once approved, you'll be able to chat about the project here.
                 </p>
               </div>
@@ -781,6 +801,7 @@ export function App() {
           <UserDetails 
             user={inspectedUser}
             onBack={() => setView("matches")}
+            isDarkMode={isDarkMode}
           />
         )}
 
