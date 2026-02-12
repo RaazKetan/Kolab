@@ -1,6 +1,6 @@
 import { 
   Compass, MessageSquare, Users, PlusSquare, FolderGit2, Heart,
-  GitCommit, User, Sun, Moon, LogOut
+  GitCommit, User, Sun, Moon, LogOut, Briefcase
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 
@@ -29,6 +29,7 @@ export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleT
     { id: 'discover', icon: Compass, label: 'Discover' },
     { id: 'matches', icon: MessageSquare, label: 'Matches' },
     { id: 'searchTalent', icon: Users, label: 'Find Talent' },
+    { id: 'jobs', icon: Briefcase, label: 'Jobs' },
     { id: 'postProject', icon: PlusSquare, label: 'Post Project' },
     { id: 'myProjects', icon: FolderGit2, label: 'My Projects' },
     { id: 'projectLikes', icon: Heart, label: 'Likes' },
@@ -101,7 +102,13 @@ export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleT
             currentView === 'profile' || currentView === 'profileEdit' ? 'bg-white/10' : 'hover:bg-white/5'
           } disabled:opacity-50`}
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 border border-white/20 shrink-0" />
+          <div className="relative">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 border border-white/20 shrink-0" />
+            {/* Notification Dot */}
+            {currentUser?.analysis_notification && (
+              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0f0f11] animate-pulse" />
+            )}
+          </div>
           <div className="text-left opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
             <div className="text-sm font-bold text-white">{currentUser?.name || 'User'}</div>
             <div className="text-xs text-zinc-500">{currentUser?.role || 'Developer'}</div>
@@ -113,7 +120,7 @@ export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleT
 };
 
 // Bottom Nav for Mobile
-export const BottomNav = ({ currentView, setView }) => {
+export const BottomNav = ({ currentView, setView, currentUser }) => {
   const [isNavigating, setIsNavigating] = useState(false);
   const navigationTimeoutRef = useRef(null);
 
@@ -136,6 +143,7 @@ export const BottomNav = ({ currentView, setView }) => {
 
   const navItems = [
     { id: 'discover', icon: Compass },
+    { id: 'jobs', icon: Briefcase },
     { id: 'matches', icon: MessageSquare },
     { id: 'postProject', icon: PlusSquare },
     { id: 'profile', icon: User },
@@ -149,13 +157,17 @@ export const BottomNav = ({ currentView, setView }) => {
             key={item.id}
             onClick={() => handleNavigation(item.id)}
             disabled={isNavigating}
-            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+            className={`relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
               currentView === item.id 
                 ? 'text-blue-400 bg-white/10' 
                 : 'text-zinc-500 hover:text-zinc-300'
             } disabled:opacity-50`}
           >
             <item.icon className="w-6 h-6" />
+            {/* Notification Dot for Profile */}
+            {item.id === 'profile' && currentUser?.analysis_notification && (
+              <div className="absolute top-1 right-3 w-2 h-2 bg-red-500 rounded-full border border-[#0f0f11] animate-pulse" />
+            )}
             <span className="text-xs font-medium">{item.id === 'discover' ? 'Discover' : item.id === 'matches' ? 'Matches' : item.id === 'postProject' ? 'Post' : 'Profile'}</span>
           </button>
         ))}

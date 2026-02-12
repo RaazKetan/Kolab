@@ -54,6 +54,7 @@ For task "semantic_search":
 - filters_applied should show what filters were used
 """
 
+
 def _parse_json_from_response(resp):
     text = None
     if getattr(resp, "text", None):
@@ -83,15 +84,16 @@ def _parse_json_from_response(resp):
         except Exception as e:
             print(f"Failed to parse text as JSON: {e}")
             print(f"Text content: {text[:200]}...")
-            
+
     raise ValueError("Gemini returned non-JSON or empty response")
+
 
 def refine_pitch(raw_idea: str):
     try:
         body = {"task": "refine_pitch", "raw_idea": raw_idea or ""}
-        resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-            [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-        )
+        resp = genai.GenerativeModel(
+            os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
         return _parse_json_from_response(resp)
     except Exception as e:
         print(f"Gemini refine_pitch failed: {e}")
@@ -100,20 +102,22 @@ def refine_pitch(raw_idea: str):
             "refined_pitch": raw_idea or "",
             "key_terms": [],
             "complexity": "intermediate",
-            "skills_needed": []
+            "skills_needed": [],
         }
+
 
 def analyze_repo(readme_text: str, files: list):
     body = {
         "task": "analyze_repo",
         "repo_url": "n/a",
         "readme": (readme_text or "")[:5000],
-        "files": files[:5] if files else []
+        "files": files[:5] if files else [],
     }
-    resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-        [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-    )
+    resp = genai.GenerativeModel(
+        os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
     return _parse_json_from_response(resp)
+
 
 async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list = None):
     # Ensure GOOGLE_API_KEY is set for ADK
@@ -124,29 +128,25 @@ async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list =
 
     try:
         print(f"Analyzing repo: {repo_url}")
-        
+
         # Try to use GitHub Agent first
         try:
             agent = create_github_agent()
             print("GitHub Agent initialized")
-            
+
             # Create session service and runner
             session_service = InMemorySessionService()
             user_id = "user_" + str(uuid.uuid4())[:8]
             session_id = "session_" + str(uuid.uuid4())[:8]
-            
+
             # Create session using async method if possible, falling back to sync if needed.
             # Inspect showed create_session is coroutine
             await session_service.create_session(
-                app_name="agents",
-                user_id=user_id,
-                session_id=session_id
+                app_name="agents", user_id=user_id, session_id=session_id
             )
-            
+
             runner = Runner(
-                app_name="agents",
-                agent=agent,
-                session_service=session_service
+                app_name="agents", agent=agent, session_service=session_service
             )
 
             try:
@@ -169,16 +169,18 @@ async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list =
                 }}
                 Output JSON only.
                 """
-                
+
                 # Construct message using duck-typing to satisfy validation
                 part = SimpleNamespace(text=prompt)
                 msg = SimpleNamespace(role="user", parts=[part])
-                
+
                 print("Running GitHub Agent via Runner (Async)...")
                 full_response_text = ""
-                
+
                 # Execute agent asynchronously
-                async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
+                async for event in runner.run_async(
+                    user_id=user_id, session_id=session_id, new_message=msg
+                ):
                     if hasattr(event, "text") and event.text:
                         full_response_text += event.text
                     elif hasattr(event, "content"):
@@ -187,7 +189,7 @@ async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list =
                             for p in c.parts:
                                 if hasattr(p, "text") and p.text:
                                     full_response_text += p.text
-                
+
                 print(f"Agent raw response length: {len(full_response_text)}")
                 if full_response_text:
                     dummy_resp = SimpleNamespace(text=full_response_text)
@@ -200,37 +202,45 @@ async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list =
         except Exception as e:
             print(f"GitHub Agent failed or not available: {e}")
             import traceback
+
             traceback.print_exc()
             # Fall through to legacy method
-        
+
         print(f"Falling back to legacy analysis for {repo_url}")
         print(f"README length: {len(readme_text or '')}")
         print(f"Files count: {len(files or [])}")
-        
+
         # Reuse analyze_repo and attach the URL into the response
         # analyze_repo is sync. We should run it in a thread to avoid blocking loop if it's heavy,
         # but it's just one API call, so it might be okay. Better to be safe.
         import asyncio
+
         loop = asyncio.get_running_loop()
         # Partial to pass args
         from functools import partial
-        data = await loop.run_in_executor(None, partial(analyze_repo, readme_text or "", files or []))
-        
+
+        data = await loop.run_in_executor(
+            None, partial(analyze_repo, readme_text or "", files or [])
+        )
+
         print(f"Analysis result: {data}")
-        
+
         if isinstance(data, dict):
             data.setdefault("repo_url", repo_url or "unknown")
             # Ensure we have a proper title
             if not data.get("project_title") or data.get("project_title") == "Untitled":
                 # Try to extract title from repo URL
                 repo_name = repo_url.split("/")[-1] if "/" in repo_url else "Project"
-                data["project_title"] = repo_name.replace("-", " ").replace("_", " ").title()
+                data["project_title"] = (
+                    repo_name.replace("-", " ").replace("_", " ").title()
+                )
         return data
     except Exception as e:
         print(f"Error analyzing repo {repo_url}: {e}")
         import traceback
+
         traceback.print_exc()
-        
+
         # Return a better fallback response
         repo_name = repo_url.split("/")[-1] if "/" in repo_url else "Project"
         return {
@@ -243,20 +253,22 @@ async def analyze_repo_url(repo_url: str, readme_text: str = None, files: list =
             "detected_domains": [],
             "required_skills": [],
             "complexity_level": "intermediate",
-            "estimated_collaboration_roles": []
+            "estimated_collaboration_roles": [],
         }
+
 
 def analyze_user_repos(username: str, repos_meta: list):
     # repos_meta: [{"name": str, "languages": [str], "description": str}, ...]
     body = {
         "task": "analyze_user",
         "username": username or "unknown",
-        "repos": repos_meta or []
+        "repos": repos_meta or [],
     }
-    resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-        [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-    )
+    resp = genai.GenerativeModel(
+        os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
     return _parse_json_from_response(resp)
+
 
 def embed_text(text: str) -> list:
     try:
@@ -266,34 +278,59 @@ def embed_text(text: str) -> list:
         result = genai.embed_content(
             model="gemini-embedding-001",
             content=text or "",
-            task_type="RETRIEVAL_DOCUMENT"  # for indexing documents in a database
+            task_type="RETRIEVAL_DOCUMENT",  # for indexing documents in a database
         )
-        
+
         # Extract embedding from the result
-        if hasattr(result, 'embedding'):
-            return result['embedding']
+        if hasattr(result, "embedding"):
+            return result["embedding"]
         elif isinstance(result, dict):
-            if 'embedding' in result:
-                emb = result['embedding']
+            if "embedding" in result:
+                emb = result["embedding"]
                 # Handle both direct list and nested values
                 if isinstance(emb, list):
                     return emb
-                elif isinstance(emb, dict) and 'values' in emb:
-                    return emb['values']
-        
+                elif isinstance(emb, dict) and "values" in emb:
+                    return emb["values"]
+
         print(f"Unexpected embedding response format: {type(result)}")
         return []
-        
+
     except Exception as e:
         print(f"Gemini embedding failed: {e}")
         import traceback
+
         traceback.print_exc()
         # Fallback to simple keyword-based embedding
         words = (text or "").lower().split()
-        vocab = ["python","javascript","react","fastapi","ml","ai","mobile","blockchain","data","web","frontend","backend","database","api","ui","ux","design","development","programming","coding"]
+        vocab = [
+            "python",
+            "javascript",
+            "react",
+            "fastapi",
+            "ml",
+            "ai",
+            "mobile",
+            "blockchain",
+            "data",
+            "web",
+            "frontend",
+            "backend",
+            "database",
+            "api",
+            "ui",
+            "ux",
+            "design",
+            "development",
+            "programming",
+            "coding",
+        ]
         return [float(sum(1 for w in words if v in w)) for v in vocab]
 
-def monitor_chat_message(message_content: str, project_title: str, project_summary: str) -> dict:
+
+def monitor_chat_message(
+    message_content: str, project_title: str, project_summary: str
+) -> dict:
     """
     Monitor chat messages to ensure they are project-related
     Returns: {"is_project_related": bool, "suggestion": str, "warning": str}
@@ -303,11 +340,11 @@ def monitor_chat_message(message_content: str, project_title: str, project_summa
             "task": "monitor_chat",
             "message": message_content,
             "project_title": project_title,
-            "project_summary": project_summary
+            "project_summary": project_summary,
         }
-        resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-            [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-        )
+        resp = genai.GenerativeModel(
+            os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
         return _parse_json_from_response(resp)
     except Exception as e:
         print(f"Gemini monitor_chat_message failed: {e}")
@@ -315,8 +352,9 @@ def monitor_chat_message(message_content: str, project_title: str, project_summa
         return {
             "is_project_related": True,  # Default to allowing the message
             "suggestion": "",
-            "warning": ""
+            "warning": "",
         }
+
 
 def get_project_requirements_questions() -> dict:
     """
@@ -325,7 +363,7 @@ def get_project_requirements_questions() -> dict:
     """
     try:
         print("Starting get_project_requirements_questions...")
-        
+
         # Check if Gemini API key is available
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key or api_key.strip() == "":
@@ -335,29 +373,27 @@ def get_project_requirements_questions() -> dict:
                     "What is the main purpose of your project?",
                     "What type of application are you building? (web app, mobile app, desktop app, etc.)",
                     "What programming languages do you plan to use?",
-                    "What frameworks or libraries are you considering?"
+                    "What frameworks or libraries are you considering?",
                 ],
                 "current_step": 1,
-                "total_steps": 4
+                "total_steps": 4,
             }
-        
-        body = {
-            "task": "get_project_questions",
-            "step": 1
-        }
+
+        body = {"task": "get_project_questions", "step": 1}
         print(f"Request body: {body}")
-        
-        resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-            [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-        )
+
+        resp = genai.GenerativeModel(
+            os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
         print(f"Gemini response: {resp}")
-        
+
         result = _parse_json_from_response(resp)
         print(f"Parsed result: {result}")
         return result
     except Exception as e:
         print(f"Gemini get_project_requirements_questions failed: {e}")
         import traceback
+
         traceback.print_exc()
         # Return fallback questions
         return {
@@ -365,11 +401,12 @@ def get_project_requirements_questions() -> dict:
                 "What is the main purpose of your project?",
                 "What type of application are you building? (web app, mobile app, desktop app, etc.)",
                 "What programming languages do you plan to use?",
-                "What frameworks or libraries are you considering?"
+                "What frameworks or libraries are you considering?",
             ],
             "current_step": 1,
-            "total_steps": 4
+            "total_steps": 4,
         }
+
 
 def process_project_requirements(answers: list, current_step: int) -> dict:
     """
@@ -377,8 +414,10 @@ def process_project_requirements(answers: list, current_step: int) -> dict:
     Returns: {"questions": list, "current_step": int, "total_steps": int, "project_details": dict, "is_complete": bool}
     """
     try:
-        print(f"Processing project requirements - answers: {answers}, step: {current_step}")
-        
+        print(
+            f"Processing project requirements - answers: {answers}, step: {current_step}"
+        )
+
         # Check if Gemini API key is available
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key or api_key.strip() == "":
@@ -392,15 +431,19 @@ def process_project_requirements(answers: list, current_step: int) -> dict:
                     "project_details": {
                         "title": answers[0] if answers else "My Project",
                         "summary": f"A {answers[1] if len(answers) > 1 else 'web'} project using {answers[2] if len(answers) > 2 else 'modern technologies'}",
-                        "project_type": answers[1] if len(answers) > 1 else "Web Application",
-                        "languages": [answers[2]] if len(answers) > 2 else ["JavaScript"],
+                        "project_type": answers[1]
+                        if len(answers) > 1
+                        else "Web Application",
+                        "languages": [answers[2]]
+                        if len(answers) > 2
+                        else ["JavaScript"],
                         "frameworks": ["React"],
                         "domains": ["General"],
                         "skills": ["Development"],
                         "complexity": "intermediate",
-                        "roles": ["Developer"]
+                        "roles": ["Developer"],
                     },
-                    "is_complete": True
+                    "is_complete": True,
                 }
             else:
                 return {
@@ -408,32 +451,33 @@ def process_project_requirements(answers: list, current_step: int) -> dict:
                         "What is the main purpose of your project?",
                         "What type of application are you building?",
                         "What programming languages do you plan to use?",
-                        "What frameworks or libraries are you considering?"
+                        "What frameworks or libraries are you considering?",
                     ],
                     "current_step": current_step + 1,
                     "total_steps": 4,
                     "project_details": None,
-                    "is_complete": False
+                    "is_complete": False,
                 }
-        
+
         body = {
             "task": "process_project_requirements",
             "answers": answers,
-            "current_step": current_step
+            "current_step": current_step,
         }
         print(f"Request body: {body}")
-        
-        resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-            [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-        )
+
+        resp = genai.GenerativeModel(
+            os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
         print(f"Gemini response: {resp}")
-        
+
         result = _parse_json_from_response(resp)
         print(f"Parsed result: {result}")
         return result
     except Exception as e:
         print(f"Gemini process_project_requirements failed: {e}")
         import traceback
+
         traceback.print_exc()
         # Return fallback response
         return {
@@ -449,12 +493,15 @@ def process_project_requirements(answers: list, current_step: int) -> dict:
                 "domains": ["General"],
                 "skills": ["Frontend Development"],
                 "complexity": "intermediate",
-                "roles": ["Developer"]
+                "roles": ["Developer"],
             },
-            "is_complete": True
+            "is_complete": True,
         }
 
-def generate_project_template(project_type: str, complexity: str, tech_stack: list) -> dict:
+
+def generate_project_template(
+    project_type: str, complexity: str, tech_stack: list
+) -> dict:
     """
     Generate a detailed project template based on type, complexity, and tech stack
     Returns: {"template": dict, "structure": list, "milestones": list, "resources": list}
@@ -464,11 +511,11 @@ def generate_project_template(project_type: str, complexity: str, tech_stack: li
             "task": "generate_project_template",
             "project_type": project_type,
             "complexity": complexity,
-            "tech_stack": tech_stack
+            "tech_stack": tech_stack,
         }
-        resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-            [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-        )
+        resp = genai.GenerativeModel(
+            os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
         return _parse_json_from_response(resp)
     except Exception as e:
         print(f"Gemini generate_project_template failed: {e}")
@@ -479,26 +526,27 @@ def generate_project_template(project_type: str, complexity: str, tech_stack: li
                 "description": f"A {complexity} {project_type} project",
                 "tech_stack": tech_stack,
                 "estimated_duration": "4-8 weeks",
-                "team_size": "2-4 people"
+                "team_size": "2-4 people",
             },
             "structure": [
                 "Project Setup",
                 "Core Development",
                 "Testing & Debugging",
-                "Deployment & Documentation"
+                "Deployment & Documentation",
             ],
             "milestones": [
                 "Project initialization and setup",
                 "Core feature development",
                 "Testing and bug fixes",
-                "Final deployment and documentation"
+                "Final deployment and documentation",
             ],
             "resources": [
                 "Official documentation for chosen technologies",
                 "Tutorial videos and guides",
-                "Community forums and support"
-            ]
+                "Community forums and support",
+            ],
         }
+
 
 def semantic_search_projects(query: str, filters: dict = None) -> dict:
     """
@@ -506,14 +554,10 @@ def semantic_search_projects(query: str, filters: dict = None) -> dict:
     Returns: {"results": list, "suggestions": list, "filters_applied": dict}
     """
     try:
-        body = {
-            "task": "semantic_search",
-            "query": query,
-            "filters": filters or {}
-        }
-        resp = genai.GenerativeModel("gemini-2.5-pro").generate_content(
-            [SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)]
-        )
+        body = {"task": "semantic_search", "query": query, "filters": filters or {}}
+        resp = genai.GenerativeModel(
+            os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        ).generate_content([SYSTEM_PROMPT, json.dumps(body, ensure_ascii=False)])
         return _parse_json_from_response(resp)
     except Exception as e:
         print(f"Gemini semantic_search_projects failed: {e}")
@@ -523,19 +567,20 @@ def semantic_search_projects(query: str, filters: dict = None) -> dict:
             "suggestions": [
                 "Try searching for specific technologies like 'React' or 'Python'",
                 "Search by project type like 'web app' or 'mobile app'",
-                "Use skill level terms like 'beginner' or 'advanced'"
+                "Use skill level terms like 'beginner' or 'advanced'",
             ],
-            "filters_applied": filters or {}
+            "filters_applied": filters or {},
         }
+
 
 async def analyze_project_repo(repo_url: str):
     """
     Analyze a GitHub repository to extract project details for auto-filling the project creation form.
     Uses the GitHub ADK agent to deeply analyze the repository code.
-    
+
     Args:
         repo_url: GitHub repository URL
-        
+
     Returns:
         dict: Project details including title, summary, languages, frameworks, skills, etc.
     """
@@ -547,27 +592,21 @@ async def analyze_project_repo(repo_url: str):
 
     try:
         print(f"Analyzing project repo: {repo_url}")
-        
+
         # Use GitHub Agent for deep code analysis
         agent = create_github_agent()
         print("GitHub Agent initialized for project analysis")
-        
+
         # Create session service and runner
         session_service = InMemorySessionService()
         user_id = "project_" + str(uuid.uuid4())[:8]
         session_id = "session_" + str(uuid.uuid4())[:8]
-        
+
         await session_service.create_session(
-            app_name="agents",
-            user_id=user_id,
-            session_id=session_id
+            app_name="agents", user_id=user_id, session_id=session_id
         )
-        
-        runner = Runner(
-            app_name="agents",
-            agent=agent,
-            session_service=session_service
-        )
+
+        runner = Runner(app_name="agents", agent=agent, session_service=session_service)
 
         try:
             prompt = f"""
@@ -595,16 +634,18 @@ async def analyze_project_repo(repo_url: str):
             
             Be specific and accurate. Output ONLY the JSON object, no additional text.
             """
-            
+
             # Construct message
             part = SimpleNamespace(text=prompt)
             msg = SimpleNamespace(role="user", parts=[part])
-            
+
             print("Running GitHub Agent for project analysis...")
             full_response_text = ""
-            
+
             # Execute agent asynchronously
-            async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
+            async for event in runner.run_async(
+                user_id=user_id, session_id=session_id, new_message=msg
+            ):
                 if hasattr(event, "text") and event.text:
                     full_response_text += event.text
                 elif hasattr(event, "content"):
@@ -613,21 +654,21 @@ async def analyze_project_repo(repo_url: str):
                         for p in c.parts:
                             if hasattr(p, "text") and p.text:
                                 full_response_text += p.text
-            
+
             print(f"Agent response length: {len(full_response_text)}")
-            
+
             if full_response_text:
                 dummy_resp = SimpleNamespace(text=full_response_text)
                 result = _parse_json_from_response(dummy_resp)
-                
+
                 # Ensure repo_url is included
                 if isinstance(result, dict):
                     result["repo_url"] = repo_url
-                    
+
                 return result
             else:
                 raise Exception("No response from GitHub agent")
-                
+
         finally:
             if hasattr(runner, "close"):
                 print("Closing runner...")
@@ -636,8 +677,9 @@ async def analyze_project_repo(repo_url: str):
     except Exception as e:
         print(f"Error analyzing project repo {repo_url}: {e}")
         import traceback
+
         traceback.print_exc()
-        
+
         # Return fallback response
         repo_name = repo_url.split("/")[-1] if "/" in repo_url else "Project"
         return {
@@ -650,17 +692,18 @@ async def analyze_project_repo(repo_url: str):
             "domains": [],
             "skills": [],
             "complexity": "intermediate",
-            "roles": []
+            "roles": [],
         }
+
 
 async def analyze_user_repository(repo_url: str):
     """
     Analyze a single GitHub repository for user profile.
     Extracts commit history, contributions, skills, and technologies used.
-    
+
     Args:
         repo_url: GitHub repository URL
-        
+
     Returns:
         dict: Repository analysis including commits, skills, languages, frameworks, etc.
     """
@@ -672,33 +715,27 @@ async def analyze_user_repository(repo_url: str):
 
     try:
         print(f"Analyzing user repository: {repo_url}")
-        
+
         # Use GitHub Agent for deep analysis
         agent = create_github_agent()
         print("GitHub Agent initialized for user repository analysis")
-        
+
         # Create session service and runner
         session_service = InMemorySessionService()
         user_id = "user_repo_" + str(uuid.uuid4())[:8]
         session_id = "session_" + str(uuid.uuid4())[:8]
-        
+
         await session_service.create_session(
-            app_name="agents",
-            user_id=user_id,
-            session_id=session_id
+            app_name="agents", user_id=user_id, session_id=session_id
         )
-        
-        runner = Runner(
-            app_name="agents",
-            agent=agent,
-            session_service=session_service
-        )
+
+        runner = Runner(app_name="agents", agent=agent, session_service=session_service)
 
         try:
             # Extract repo owner and name from URL
             parts = repo_url.rstrip("/").split("/")
             repo_name = parts[-1] if parts else "repository"
-            
+
             prompt = f"""
             Analyze the GitHub repository at {repo_url} to understand the user's contributions and skills.
             
@@ -724,16 +761,18 @@ async def analyze_user_repository(repo_url: str):
             
             Be specific and accurate. Output ONLY the JSON object, no additional text.
             """
-            
+
             # Construct message
             part = SimpleNamespace(text=prompt)
             msg = SimpleNamespace(role="user", parts=[part])
-            
+
             print("Running GitHub Agent for user repository analysis...")
             full_response_text = ""
-            
+
             # Execute agent asynchronously
-            async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
+            async for event in runner.run_async(
+                user_id=user_id, session_id=session_id, new_message=msg
+            ):
                 if hasattr(event, "text") and event.text:
                     full_response_text += event.text
                 elif hasattr(event, "content"):
@@ -742,25 +781,26 @@ async def analyze_user_repository(repo_url: str):
                         for p in c.parts:
                             if hasattr(p, "text") and p.text:
                                 full_response_text += p.text
-            
+
             print(f"Agent response length: {len(full_response_text)}")
-            
+
             if full_response_text:
                 dummy_resp = SimpleNamespace(text=full_response_text)
                 result = _parse_json_from_response(dummy_resp)
-                
+
                 # Ensure required fields are present
                 if isinstance(result, dict):
                     result.setdefault("url", repo_url)
                     result.setdefault("name", repo_name)
                     # Add timestamp
                     from datetime import datetime
+
                     result["last_analyzed"] = datetime.utcnow().isoformat() + "Z"
-                    
+
                 return result
             else:
                 raise Exception("No response from GitHub agent")
-                
+
         finally:
             if hasattr(runner, "close"):
                 print("Closing runner...")
@@ -769,13 +809,14 @@ async def analyze_user_repository(repo_url: str):
     except Exception as e:
         print(f"Error analyzing user repository {repo_url}: {e}")
         import traceback
+
         traceback.print_exc()
-        
+
         # Return fallback response
         parts = repo_url.rstrip("/").split("/")
         repo_name = parts[-1] if parts else "repository"
         from datetime import datetime
-        
+
         return {
             "url": repo_url,
             "name": repo_name,
@@ -785,6 +826,5 @@ async def analyze_user_repository(repo_url: str):
             "languages": [],
             "frameworks": [],
             "last_analyzed": datetime.utcnow().isoformat() + "Z",
-            "analysis_summary": f"Repository: {repo_url}. Analysis failed, please try again later."
+            "analysis_summary": f"Repository: {repo_url}. Analysis failed, please try again later.",
         }
-

@@ -17,6 +17,8 @@ import { ProjectLikes } from './components/ProjectLikes';
 import { LandingPage } from './components/LandingPage';
 import { TalentSearch } from './components/TalentSearch';
 import { Discover } from './components/Discover';
+import { ProfileSetup } from './components/ProfileSetup';
+import { Jobs } from './components/Jobs';
 const API_BASE = "http://localhost:8000";
 
 export function App() {
@@ -161,6 +163,26 @@ export function App() {
     }
   }, [currentUser]); // Only depend on currentUser
 
+  const checkProfileCompletion = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    try {
+      const res = await fetch(`${API_BASE}/profile-setup/check-completion`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        return data.profile_completed;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking profile completion:', error);
+      return false;
+    }
+  };
+
   const handleLogin = async (email, password) => {
     setIsLoading(true);
     try {
@@ -174,7 +196,14 @@ export function App() {
         const data = await response.json();
         localStorage.setItem("token", data.access_token);
         await fetchCurrentUser();
-        setView("discover");
+        
+        // Check if profile is completed
+        const isComplete = await checkProfileCompletion();
+        if (isComplete) {
+          setView("discover");
+        } else {
+          setView("profileSetup");
+        }
       } else {
         alert("Login failed");
       }
@@ -199,15 +228,15 @@ export function App() {
           username,
           name, 
           email, 
-          password,
-          skills: [] // Default empty skills, user can update later
+          password
         })
       });
   
       if (res.ok) {
-        alert("Registration successful! Welcome to Skill Link!");
+        alert("Registration successful! Let's set up your profile.");
         // Auto-login after successful registration
         await handleLogin(email, password);
+        // Will redirect to profile setup in checkProfileCompletion
       } else {
         const msg = await res.text();
         console.error("register error:", msg);
@@ -400,8 +429,14 @@ export function App() {
     (async () => {
       const ok = await fetchCurrentUser();
       if (ok) {
-        setView("discover");
-        fetchNextProject();
+        // Check profile completion
+        const isComplete = await checkProfileCompletion();
+        if (isComplete) {
+          setView("discover");
+          fetchNextProject();
+        } else {
+          setView("profileSetup");
+        }
         // fetchNotifications will be called by the other useEffect when currentUser is set
       } else {
         setView("login");
@@ -417,7 +452,13 @@ export function App() {
     fetchNotifications();
     
     // Then set up the interval for periodic updates
-    const interval = setInterval(fetchNotifications, 10000); // Every 10 seconds
+    // Optimize: Poll every 30s instead of 10s, and only if tab is visible
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchNotifications();
+      }
+    }, 30000); 
+    
     return () => clearInterval(interval);
   }, [currentUser, fetchNotifications]);
 
@@ -648,6 +689,21 @@ export function App() {
     );
   }
 
+  // Show profile setup if not completed
+  if (view === "profileSetup") {
+    return (
+      <ProfileSetup 
+        onComplete={async () => {
+          // Refresh user data and redirect to discover
+          await fetchCurrentUser();
+          setView("discover");
+          fetchNextProject();
+        }}
+        isDarkMode={isDarkMode}
+      />
+    );
+  }
+
   return (
     <div className={`min-h-screen font-sans flex ${isDarkMode ? 'bg-[#0a0a0a] text-slate-50' : 'bg-gray-50 text-gray-900'}`}>
       <SideNav 
@@ -713,6 +769,10 @@ export function App() {
             isDarkMode={isDarkMode}
             isLoading={isDiscoverLoading}
           />
+        )}
+
+        {view === "jobs" && (
+          <Jobs isDarkMode={isDarkMode} />
         )}
 
         {view === "matches" && (
@@ -893,7 +953,7 @@ export function App() {
         </div>
       </main>
       
-      <BottomNav currentView={view} setView={setView} />
+      <BottomNav currentView={view} setView={setView} currentUser={currentUser} />
     </div>
   );
 }

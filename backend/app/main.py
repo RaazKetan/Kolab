@@ -1,7 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
-from .routers import users, projects, ai, auth, matching, profile, repo_projects, chat, requirements, analyze_repo, talent, skill_gap
+from .routers import (
+    users,
+    projects,
+    ai,
+    auth,
+    matching,
+    profile,
+    repo_projects,
+    chat,
+    requirements,
+    analyze_repo,
+    talent,
+    skill_gap,
+    profile_setup,
+    analysis_status,
+    jobs,
+)
+
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Origin API")
@@ -16,6 +33,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(profile_setup.router)
+app.include_router(analysis_status.router)
 app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(ai.router)
@@ -27,3 +46,4 @@ app.include_router(requirements.router)
 app.include_router(analyze_repo.router)
 app.include_router(talent.router)
 app.include_router(skill_gap.router)
+app.include_router(jobs.router)
