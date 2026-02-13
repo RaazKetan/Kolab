@@ -107,7 +107,7 @@ async def accept_skills(
 
     # Update embedding if needed
     try:
-        from ..gemini_agent import embed_text
+        from ..utils import embed_text
 
         vec_text = f"{current_user.name} {current_user.bio} {' '.join(current_user.skills or [])} {' '.join(current_user.top_languages or [])}"
         current_user.user_vector = embed_text(vec_text)

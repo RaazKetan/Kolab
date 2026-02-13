@@ -1,5 +1,5 @@
 import { 
-  Compass, MessageSquare, Users, PlusSquare, FolderGit2, Heart,
+  Compass, MessageSquare, Users, ClipboardList,
   GitCommit, User, Sun, Moon, LogOut, Briefcase
 } from 'lucide-react';
 import { useState, useRef } from 'react';
@@ -27,12 +27,10 @@ export const SideNav = ({ currentView, setView, currentUser, isDarkMode, toggleT
 
   const navItems = [
     { id: 'discover', icon: Compass, label: 'Discover' },
-    { id: 'matches', icon: MessageSquare, label: 'Matches' },
+    { id: 'connections', icon: MessageSquare, label: 'Connections' },
+    { id: 'applications', icon: ClipboardList, label: 'My Applications' },
     { id: 'searchTalent', icon: Users, label: 'Find Talent' },
     { id: 'jobs', icon: Briefcase, label: 'Jobs' },
-    { id: 'postProject', icon: PlusSquare, label: 'Post Project' },
-    { id: 'myProjects', icon: FolderGit2, label: 'My Projects' },
-    { id: 'projectLikes', icon: Heart, label: 'Likes' },
   ];
 
   return (
@@ -142,11 +140,11 @@ export const BottomNav = ({ currentView, setView, currentUser }) => {
   };
 
   const navItems = [
-    { id: 'discover', icon: Compass },
-    { id: 'jobs', icon: Briefcase },
-    { id: 'matches', icon: MessageSquare },
-    { id: 'postProject', icon: PlusSquare },
-    { id: 'profile', icon: User },
+    { id: 'discover', icon: Compass, label: 'Discover' },
+    { id: 'jobs', icon: Briefcase, label: 'Jobs' },
+    { id: 'connections', icon: MessageSquare, label: 'Connections' },
+    { id: 'applications', icon: ClipboardList, label: 'Apps' },
+    { id: 'profile', icon: User, label: 'Profile' },
   ];
 
   return (
@@ -168,7 +166,7 @@ export const BottomNav = ({ currentView, setView, currentUser }) => {
             {item.id === 'profile' && currentUser?.analysis_notification && (
               <div className="absolute top-1 right-3 w-2 h-2 bg-red-500 rounded-full border border-[#0f0f11] animate-pulse" />
             )}
-            <span className="text-xs font-medium">{item.id === 'discover' ? 'Discover' : item.id === 'matches' ? 'Matches' : item.id === 'postProject' ? 'Post' : 'Profile'}</span>
+            <span className="text-xs font-medium">{item.label}</span>
           </button>
         ))}
       </div>

@@ -326,3 +326,42 @@ class ApplicationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ApplicationDetailResponse(BaseModel):
+    """Application with embedded job and employer details for the tracker view"""
+
+    id: int
+    job_id: int
+    user_id: int
+    status: str
+    cover_letter: Optional[str]
+    created_at: datetime
+    # Embedded job info
+    job_title: str
+    job_description: Optional[str] = None
+    job_skills: List[str] = []
+    job_location: Optional[str] = None
+    job_salary_range: Optional[str] = None
+    # Embedded employer info
+    employer_id: int
+    employer_name: Optional[str] = None
+    employer_org_name: Optional[str] = None
+
+
+class ConnectionResponse(BaseModel):
+    """Connections — applications where recruiter responded (status != 'applied')"""
+
+    id: int
+    job_id: int
+    status: str
+    created_at: datetime
+    # Job info
+    job_title: str
+    job_skills: List[str] = []
+    job_location: Optional[str] = None
+    # Employer info
+    employer_id: int
+    employer_name: Optional[str] = None
+    employer_org_name: Optional[str] = None
+    employer_avatar_url: Optional[str] = None

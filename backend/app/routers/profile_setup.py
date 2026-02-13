@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 from .. import schemas, models, auth
 from ..database import get_db
 from ..resume_parser import parse_resume
-from ..gemini_agent import embed_text
+
+from ..utils import embed_text
 import os
 
 router = APIRouter(prefix="/profile-setup", tags=["Profile Setup"])

@@ -29,7 +29,7 @@ export const AuthForm = ({ view, setView, onLogin, onRegister }) => {
             Skill Link
           </h1>
           <p className="text-xl text-[#8B8C89]">
-            Connect with developers and discover amazing projects
+            Connect with developers and discover amazing opportunities
           </p>
         </div>
 

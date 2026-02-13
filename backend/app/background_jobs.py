@@ -16,7 +16,7 @@ from .database import SessionLocal
 from .models import User, Job, JobMatch
 from .scoring import compute_final_match_score
 from .match_utlis import cosine_similarity
-from .gemini_agent import embed_text
+from .utils import embed_text
 
 
 class JobStatus(str, Enum):
@@ -154,8 +154,25 @@ def start_background_job(user_id: int, repo_urls: List[str]) -> str:
     job_id = job_queue.create_job(user_id, repo_urls)
     print(f"[Background] Created job {job_id} for user {user_id}")
 
-    # Start the async task in the background
-    asyncio.create_task(process_repository_analysis(job_id))
+    # Try to schedule in the running event loop; fall back to a new thread
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(process_repository_analysis(job_id))
+        print(f"[Background] Scheduled job {job_id} in running event loop")
+    except RuntimeError:
+        # No running loop — spin up a daemon thread with its own loop
+        print(f"[Background] No running loop, starting job {job_id} in new thread")
+
+        def _run():
+            _loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(_loop)
+            try:
+                _loop.run_until_complete(process_repository_analysis(job_id))
+            finally:
+                _loop.close()
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
 
     return job_id
 

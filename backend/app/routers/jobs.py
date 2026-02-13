@@ -5,9 +5,16 @@ from datetime import datetime
 
 from ..database import get_db
 from ..models import User, Job, JobMatch, Application
-from ..schemas import JobCreate, JobResponse, ApplicationCreate, ApplicationResponse
+from ..schemas import (
+    JobCreate,
+    JobResponse,
+    ApplicationCreate,
+    ApplicationResponse,
+    ApplicationDetailResponse,
+    ConnectionResponse,
+)
 from ..auth import get_current_user
-from ..gemini_agent import embed_text
+from ..utils import embed_text
 from ..background_jobs import trigger_job_matching
 from ..scoring import compute_visibility_score
 
@@ -184,3 +191,90 @@ async def apply_to_job(
     db.refresh(new_app)
 
     return new_app
+
+
+@router.get("/my-applications", response_model=List[ApplicationDetailResponse])
+async def get_my_applications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get all applications for the current user with job and employer details."""
+    applications = (
+        db.query(Application)
+        .filter(Application.user_id == current_user.id)
+        .order_by(Application.created_at.desc())
+        .all()
+    )
+
+    results = []
+    for app in applications:
+        job = db.query(Job).filter(Job.id == app.job_id).first()
+        if not job:
+            continue
+        employer = db.query(User).filter(User.id == job.employer_id).first()
+
+        results.append(
+            ApplicationDetailResponse(
+                id=app.id,
+                job_id=app.job_id,
+                user_id=app.user_id,
+                status=app.status,
+                cover_letter=app.cover_letter,
+                created_at=app.created_at,
+                job_title=job.title,
+                job_description=job.description,
+                job_skills=job.skills or [],
+                job_location=job.location,
+                job_salary_range=job.salary_range,
+                employer_id=job.employer_id,
+                employer_name=employer.name if employer else None,
+                employer_org_name=employer.org_name if employer else None,
+            )
+        )
+
+    return results
+
+
+@router.get("/my-connections", response_model=List[ConnectionResponse])
+async def get_my_connections(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get connections — applications where the recruiter responded.
+    Only returns applications with status != 'applied'.
+    """
+    applications = (
+        db.query(Application)
+        .filter(
+            Application.user_id == current_user.id,
+            Application.status != "applied",
+        )
+        .order_by(Application.created_at.desc())
+        .all()
+    )
+
+    results = []
+    for app in applications:
+        job = db.query(Job).filter(Job.id == app.job_id).first()
+        if not job:
+            continue
+        employer = db.query(User).filter(User.id == job.employer_id).first()
+
+        results.append(
+            ConnectionResponse(
+                id=app.id,
+                job_id=app.job_id,
+                status=app.status,
+                created_at=app.created_at,
+                job_title=job.title,
+                job_skills=job.skills or [],
+                job_location=job.location,
+                employer_id=job.employer_id,
+                employer_name=employer.name if employer else None,
+                employer_org_name=employer.org_name if employer else None,
+                employer_avatar_url=employer.avatar_url if employer else None,
+            )
+        )
+
+    return results
